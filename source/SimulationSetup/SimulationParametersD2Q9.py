@@ -12,8 +12,8 @@ def h(theta):
 # Set scale
 scale = 1
 # Set plotting frequency
-plot_every = 1 # 300 * scale
-skip_it = 0 # 20000 * scale
+plot_every = 750 # 300 * scale
+skip_it = 5000 # 20000 * scale
 # Determine the size of the different regions
 r_0: int = int(30 * scale)
 r_1: int = int(50 * scale)
