@@ -41,7 +41,8 @@ def lbm():
         force_prev = force_term(rho_prev)
         u_prev = get_velocity(f_i_prev, force_prev, lattice_velocities) #lattice velocities is array with velocity directions, THIS is where we can specify different discretisations!
         # update procedure
-        f_eq = equilibrium(rho_prev, u_prev)
+        u_prev = inlet_bc(u_prev) #inlet bc
+        f_eq = equilibrium(rho_prev, u_prev) #new equilibrium
         source = source_term(u_prev, force_prev)
         f_col = collision_bgk(f_i_prev, f_eq, source)
         f_bc = bounce_back(f_col)
@@ -58,7 +59,10 @@ def lbm():
 
         if it % plot_every == 0 and it > skip_it:
             rho_ = get_density(f_next)
-            plt.imshow(rho_.T, cmap='viridis')
+            force_ = force_term(rho_)
+            u_ = get_velocity(f_next, force_, lattice_velocities)
+            u_magnitude = jnp.linalg.norm(u_, axis=0, ord=2)
+            plt.imshow(u_magnitude.T, cmap='viridis')
             plt.gca().invert_yaxis()
             plt.colorbar()
             plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho_)))
