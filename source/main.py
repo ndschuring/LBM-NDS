@@ -27,10 +27,19 @@ def lbm():
 
     @jax.jit
     def update(f_i_prev):
+        """
+        main update function
+
+        Args:
+            f_i_prev (jnp.array): discrete velocities of previous iteration
+
+        Returns:
+            f_streamed (jnp.array): discrete velocities of next iteration
+        """
         # macroscopic variables
         rho_prev = get_density(f_i_prev)
         force_prev = force_term(rho_prev)
-        u_prev = get_velocity(f_i_prev, force_prev, lattice_velocities)
+        u_prev = get_velocity(f_i_prev, force_prev, lattice_velocities) #lattice velocities is array with velocity directions, THIS is where we can specify different discretisations!
         # update procedure
         f_eq = equilibrium(rho_prev, u_prev)
         source = source_term(u_prev, force_prev)
