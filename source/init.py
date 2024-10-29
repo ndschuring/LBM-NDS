@@ -1,8 +1,16 @@
 from source.SimulationSetup.SimulationParametersD2Q9 import *
 
-
 def init():
-    x = jnp.arange(nx) + 0.5
+    # x = jnp.arange(nx) + 0.5
+    # y = jnp.arange(ny) + 0.5
+    # [x, y] = jnp.meshgrid(x, y)
+    u = jnp.zeros((2, nx, ny))
+    rho = rho0 * jnp.ones((nx, ny))
+    return [rho, u]
+
+
+def init___():
+    x = jnp.arange(nx) + 0.5 #0.5 added to represent centre of node, not corner!
     y = jnp.arange(ny) + 0.5
     [x, y] = jnp.meshgrid(x, y)
     u = jnp.zeros((2, nx, ny))
