@@ -8,7 +8,7 @@ def p_b(rho):
     return p_c * (v_rho + 1) * (v_rho + 1) * (3 * v_rho * v_rho - 2 * v_rho + 1 - 2 * beta_tau)
 
 
-def equilibrium(rho, u):
+def equilibrium_(rho, u): #equilibrium for multi-phase
     cdot3u = 3 * jnp.einsum('ai,axy->xyi', lattice_velocities, u)
     usq = jnp.einsum('axy->xy', u * u)
     feq_1 = jnp.einsum('i,xy->xyi', w_i, rho) * (1 + cdot3u * (1 + .5 * cdot3u) - 1.5 * usq[..., jnp.newaxis])
@@ -18,6 +18,15 @@ def equilibrium(rho, u):
     feq_new__ = feq_1 + feq_2 + feq_3
     feq_new_ = feq_new__.at[:, :, 0].set(0)
     feq_new = feq_new_.at[:, :, 0].set(rho - jnp.einsum('xyi->xy', feq_new_))
+    return feq_new
+
+def equilibrium(rho, u):
+    """
+    fᵢᵉ = ρ Wᵢ (1 + 3 cᵢ ⋅ u + 9/2 (cᵢ ⋅ u)² − 3/2 ||u||₂²)
+    """
+    cdot3u = 3 * jnp.einsum('ai,axy->xyi', lattice_velocities, u)
+    usq = jnp.einsum('axy->xy', u * u)
+    feq_new = jnp.einsum('i,xy->xyi', w_i, rho) * (1 + cdot3u * (1 + .5 * cdot3u) - 1.5 * usq[..., jnp.newaxis])
     return feq_new
 
 
