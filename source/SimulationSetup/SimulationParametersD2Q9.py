@@ -43,3 +43,6 @@ theta_2: float = 2 * math.pi * (80 / 360)  # contact angle we can set it in radi
 theta_3 = 2 * math.pi * (120 / 360)  # contact angle we can set it in radians
 h1 = h(theta_1)
 h2 = h(theta_2)
+
+velocity_profile = jnp.zeros((2, nx, ny))
+velocity_profile = velocity_profile.at[0, :, :].set(u_max)
