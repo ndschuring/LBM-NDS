@@ -4,10 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="28147545-f26c-4086-92da-ba205c9cad8a" name="Changes" comment="Changed plotting parameters">
-      <change beforePath="$PROJECT_DIR$/.idea/MultiPhaseDynamics.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/MultiPhaseDynamics.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="28147545-f26c-4086-92da-ba205c9cad8a" name="Changes" comment="simulation parameters for single phase Poiseuille without incline+comments.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/SimulationSetup/SimulationParametersD2Q9.py" beforeDir="false" afterPath="$PROJECT_DIR$/source/SimulationSetup/SimulationParametersD2Q9.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/func/BoundaryConditions.py" beforeDir="false" afterPath="$PROJECT_DIR$/source/func/BoundaryConditions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/func/LBMfunc.py" beforeDir="false" afterPath="$PROJECT_DIR$/source/func/LBMfunc.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/func/MacroscopicVariables.py" beforeDir="false" afterPath="$PROJECT_DIR$/source/func/MacroscopicVariables.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/init.py" beforeDir="false" afterPath="$PROJECT_DIR$/source/init.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/source/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,6 +26,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="RESET_MODE" value="HARD" />
   </component>
@@ -31,12 +40,12 @@
     &quot;assignee&quot;: &quot;szkuds&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/ndschuring/LBM-NDS.git",
-    "accountId": "c3fb8c2a-d347-42ca-af26-ac6615ddf185"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/ndschuring/LBM-NDS.git&quot;,
+    &quot;accountId&quot;: &quot;c3fb8c2a-d347-42ca-af26-ac6615ddf185&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/.venv/lib/python3.12/site-packages/jax/_src/numpy/ufuncs.py" root0="FORCE_HIGHLIGHTING" />
   </component>
@@ -49,23 +58,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.LaplacianOperatorWettingBoundary.executor": "Run",
-    "Python.LatticeParametersD2Q9.executor": "Debug",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "/Users/sbszkudlarek/PycharmProjects/MultiPhaseDynamics/source",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.LaplacianOperatorWettingBoundary.executor&quot;: &quot;Run&quot;,
+    &quot;Python.LatticeParametersD2Q9.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Poiseuille2D&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/sbszkudlarek/PycharmProjects/MultiPhaseDynamics/source&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/source" />
@@ -139,7 +148,9 @@
       <workItem from="1727356759592" duration="866000" />
       <workItem from="1727963866736" duration="4612000" />
       <workItem from="1728042901344" duration="940000" />
-      <workItem from="1730109655863" duration="3091000" />
+      <workItem from="1730109655863" duration="3442000" />
+      <workItem from="1730113678761" duration="8124000" />
+      <workItem from="1730197103929" duration="8943000" />
     </task>
     <task id="LOCAL-00001" summary="Name changes and clean-up">
       <option name="closed" value="true" />
@@ -173,7 +184,47 @@
       <option name="project" value="LOCAL" />
       <updated>1730112893398</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Initial Commit">
+      <option name="closed" value="true" />
+      <created>1730113192148</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1730113192148</updated>
+    </task>
+    <task id="LOCAL-00006" summary="New init() for single phase Poiseuille">
+      <option name="closed" value="true" />
+      <created>1730197460441</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1730197460441</updated>
+    </task>
+    <task id="LOCAL-00007" summary="comments">
+      <option name="closed" value="true" />
+      <created>1730197489613</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1730197489613</updated>
+    </task>
+    <task id="LOCAL-00008" summary="docstring">
+      <option name="closed" value="true" />
+      <created>1730197498519</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1730197498519</updated>
+    </task>
+    <task id="LOCAL-00009" summary="simulation parameters for single phase Poiseuille without incline+comments.">
+      <option name="closed" value="true" />
+      <created>1730197535434</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1730197535434</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -194,7 +245,12 @@
     <MESSAGE value="Name changes and clean-up" />
     <MESSAGE value="Ignore local test folder" />
     <MESSAGE value="Changed plotting parameters" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changed plotting parameters" />
+    <MESSAGE value="Initial Commit" />
+    <MESSAGE value="New init() for single phase Poiseuille" />
+    <MESSAGE value="comments" />
+    <MESSAGE value="docstring" />
+    <MESSAGE value="simulation parameters for single phase Poiseuille without incline+comments." />
+    <option name="LAST_COMMIT_MESSAGE" value="simulation parameters for single phase Poiseuille without incline+comments." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -218,6 +274,6 @@
     <SUITE FILE_PATH="coverage/MultiPhaseDynamics$main.coverage" NAME="main Coverage Results" MODIFIED="1727356841696" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/source" />
     <SUITE FILE_PATH="coverage/MultiPhaseDynamics$LaplacianOperatorWettingBoundary.coverage" NAME="LaplacianOperatorWettingBoundary Coverage Results" MODIFIED="1725565475622" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/source" />
     <SUITE FILE_PATH="coverage/MultiPhaseDynamics$LatticeParametersD2Q9.coverage" NAME="LatticeParametersD2Q9 Coverage Results" MODIFIED="1725885993798" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/source/SimulationSetup" />
-    <SUITE FILE_PATH="coverage/LBM_NDS$main.coverage" NAME="main Coverage Results" MODIFIED="1730110940146" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/source" />
+    <SUITE FILE_PATH="coverage/LBM_NDS$main.coverage" NAME="main Coverage Results" MODIFIED="1730207298628" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/source" />
   </component>
 </project>
