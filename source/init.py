@@ -5,6 +5,7 @@ def init():
     # y = jnp.arange(ny) + 0.5
     # [x, y] = jnp.meshgrid(x, y)
     u = jnp.zeros((2, nx, ny))
+    u = u.at[:, 1:-1, 0].set(velocity_profile[:, 1:-1, 0]) # Poiseuille inlet
     rho = rho0 * jnp.ones((nx, ny))
     return [rho, u]
 
