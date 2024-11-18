@@ -29,7 +29,7 @@ class LBM:
         self.u_dimension = (*self.dimensions, self.lattice.d)
 
         #TODO do not include this in main LBM function, find something better
-        today = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+        today = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         cwd = os.path.abspath(__file__)
         self.sav_dir = os.path.join(os.path.dirname(cwd), "../test", today)
         if not os.path.isdir(self.sav_dir):
@@ -84,11 +84,8 @@ class LBM:
     @partial(jit, static_argnums=0, inline=True)
     def macro_vars(self, f):
         rho = jnp.sum(f, axis=-1)
-        # u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis]
-        # u = jnp.dot(f, self.lattice.c.T)
-        ux = jnp.sum(f[:,:,[1,5,8]], axis=2) - jnp.sum(f[:,:,[3,6,7]], axis=2)
-        uy = jnp.sum(f[:,:,[2,5,6]], axis=2) - jnp.sum(f[:,:,[4,7,8]], axis=2)
-        u = jnp.stack([ux, uy], axis=-1)
+        # u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #<- does not work with poiseuille BC :(
+        u = jnp.dot(f, self.lattice.c.T)
         return rho, u
 
     def write_disk(self):
