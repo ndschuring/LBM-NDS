@@ -9,9 +9,9 @@ Poiseuille Flow
                         No slip BC
         +-------------------------------------------+
         |                                           |
-Inflow  |                                           |Outflow
-  BC    |       ------------>                       |   BC
-        |                                           |
+Periodic|                                           |Periodic
+Pressure|       ------------>                       |pressure
+   BC   |                                           |   BC
         |                                           |
         +-------------------------------------------+
                         No slip BC
@@ -28,40 +28,12 @@ class Poiseuille(BGK):
         self.rho_outlet = jnp.ones((self.nx, self.ny))*kwargs.get('rho_outlet')
 
     def apply_bc(self, f):
-        # rho, u = self.macro_vars(f)
-        # u_bc = jnp.zeros((nx, ny, 2))
-        # u_in = 0.1
-        # u_bc = u.at[[0,-1],:,0].set(u_in)
-        # u_bc = u_bc.at[:, :, 0].set(u_in)
-        # f_eq = self.equilibrium(rho, u)
         def bounce_back_tube2D(f_i):
             # Bounce-back top wall
-            f_i = f_i.at[:, -1, 4].set(f_i[:, -1, 2])
-            f_i = f_i.at[:, -1, 7].set(f_i[:, -1, 5])
-            f_i = f_i.at[:, -1, 8].set(f_i[:, -1, 6])
+            f_i = f_i.at[:, -1, self.lattice.bottom_indices].set(f_i[:, -1, self.lattice.top_indices])
             # Bounce-back bottom wall
-            f_i = f_i.at[:, 0, 2].set(f_i[:, 0, 4])
-            f_i = f_i.at[:, 0, 5].set(f_i[:, 0, 7])
-            f_i = f_i.at[:, 0, 6].set(f_i[:, 0, 8])
+            f_i = f_i.at[:, -1, self.lattice.top_indices].set(f_i[:, -1, self.lattice.bottom_indices])
             return f_i
-        # def inlet_pressure(f_i):
-        #     for k in range(self.lattice.q):
-        #         f_i = f_i.at[0, :, k].set(self.lattice.w[k]*(rho_inlet+3*self.lattice.c[0,k]*)
-        #     return f_i
-        # def inlet_pressure_eq(f_i):
-        #     f_i = f_i.at[0, :, :].set(self.equilibrium(self.rho_inlet, u)[-2,:,:])
-        #     return f_i
-        # def outlet_pressure_eq(f_i):
-        #     f_i = f_i.at[-1, :, :].set(self.equilibrium(self.rho_outlet, u)[2, :, :])
-        #     return f_i
-        # def inlet_pressure(f_i):
-        #     f_i = f_i.at[0, :, :].set(self.equilibrium(self.rho_inlet, u)[0,:,:]+f_i[-2, :, :]-f_eq[-2,:,:])
-        #     return f_i
-        # def outlet_pressure(f_i):
-        #     f_i = f_i.at[-1, :, :].set(self.equilibrium(self.rho_outlet, u)[-1, :, :] + f_i[2, :, :] - f_eq[2, :, :])
-        #     return f_i
-        # f = inlet_pressure(f)
-        # f = outlet_pressure(f)
         f = bounce_back_tube2D(f)
         return f
 
