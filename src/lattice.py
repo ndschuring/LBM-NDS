@@ -13,6 +13,8 @@ class Lattice:
         self.main_indices = jnp.array(self.main_indices())
         self.right_indices = jnp.array(self.right_indices())
         self.left_indices = jnp.array(self.left_indices())
+        self.top_indices = jnp.array(self.top_indices())
+        self.bottom_indices = jnp.array(self.bottom_indices())
 
     def lattice_velocity(self):
         if self.name == "D2Q9":
@@ -48,6 +50,14 @@ class Lattice:
     def left_indices(self):
         c = self.c.T
         return jnp.where(c[:, 0] == -1)[0]
+
+    def top_indices(self):
+        c = self.c.T
+        return jnp.where(c[:, 1] == 1)[0]
+
+    def bottom_indices(self):
+        c = self.c.T
+        return jnp.where(c[:, 1] == -1)[0]
 
 
 class LatticeD2Q9(Lattice):
