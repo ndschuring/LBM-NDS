@@ -1,4 +1,5 @@
 import jax
+# jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import os
@@ -15,6 +16,7 @@ class LBM:
         self.rho0 = kwargs.get("rho0") #density for initialisation
         self.boundary_conditions = kwargs.get("boundary_conditions")
         self.lattice = kwargs.get("lattice") #set lattice
+        self.plot_every = kwargs.get("plot_every", 50)
         # self.plotter = kwargs.get("plotter") #set plotter
 
         # defining the following lattice parameters isn't necessary, just refer using self.lattice.x
@@ -26,7 +28,7 @@ class LBM:
         self.dimensions = [self.nx or 0, self.ny or 0, self.nz or 0]
         self.dimensions = self.dimensions[:self.lattice.d]
         self.rho_dimension = tuple(self.dimensions)
-        self.u_dimension = (*self.dimensions, self.lattice.d)
+        self.u_dimension = tuple((*self.dimensions, self.lattice.d))
 
         #TODO do not include this in main LBM function, find something better
         today = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -48,7 +50,7 @@ class LBM:
         f = self.initialize()
         for it in range(nt):
             f, f_prev = self.update(f) #updates f
-            if it % 100 == 0:
+            if it % self.plot_every == 0:
                 self.plot(f, it)
         return f
 
@@ -77,9 +79,9 @@ class LBM:
         """
         f_post_col = self.collision(f_prev)
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
-        f_post_col = self.stream(f_post_col)
-        f_post_col = self.apply_bc(f_post_col)
-        return f_post_col, f_prev
+        f_post_stream = self.stream(f_post_col)
+        f_post_stream = self.apply_bc(f_post_stream, f_post_col)
+        return f_post_stream, f_prev
 
     @partial(jit, static_argnums=0, inline=True)
     def macro_vars(self, f):
@@ -103,7 +105,7 @@ class LBM:
         """
         pass
 
-    def apply_bc(self, f):
+    def apply_bc(self, f, f_prev):
         """
         --Specified in simulation class--
         Applies boundary conditions after streaming
@@ -131,6 +133,13 @@ class LBM:
             if self.lattice.d == 3:
                 return jnp.roll(f_i, (c[0], c[1], c[2]), axis=(0, 1, 2))
         return jax.vmap(stream_i, in_axes=(-1, 0), out_axes=-1)(f, self.lattice.c.T)
+
+    # alternative streaming function
+    # def stream(self, f):
+    #     shifted_f = jnp.zeros_like(f)
+    #     for k in range(self.lattice.c.shape[1]):
+    #         shifted_f = shifted_f.at[:, :, k].set(jnp.roll(f[:, :, k], shift=(self.lattice.c[0, k], self.lattice.c[1, k]), axis=(0, 1)))
+    #     return shifted_f
 
     @partial(jax.jit, static_argnums=0)
     def equilibrium(self, rho, u):
