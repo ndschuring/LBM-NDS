@@ -1,4 +1,3 @@
-from src.boundary_conditions import *
 import matplotlib.pyplot as plt
 from src.lattice import LatticeD2Q9
 from src.model import BGK
