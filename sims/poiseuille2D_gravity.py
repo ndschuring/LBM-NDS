@@ -1,4 +1,3 @@
-from src.boundary_conditions import *
 import matplotlib.pyplot as plt
 from src.lattice import LatticeD2Q9
 from src.model import BGK
@@ -33,6 +32,9 @@ class Poiseuille(BGK):
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
+        plt.plot(self.x, u[:, int(self.nx / 2), 1], label="Velocity Profile")
+        plt.legend()
+        plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
         plt.clf()
 
 
@@ -40,13 +42,14 @@ if __name__ == "__main__":
     time1 = time.time()
     nx = 30
     ny = 180
-    # nt = int(1e4)
-    nt = int(1e3)
+    nt = int(1e4)
+    # nt = int(1e3)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
     plot_every = 100
-
+    g_set = 0.000003
+    tilt_angle = 0.0
 
     kwargs = {
         'lattice': lattice,
@@ -55,6 +58,8 @@ if __name__ == "__main__":
         'ny': ny,
         'rho0': rho0,
         'plot_every': plot_every,
+        'g_set': g_set,
+        'tilt_angle': tilt_angle,
     }
     simPoiseuille = Poiseuille(**kwargs)
     simPoiseuille.run(nt)
