@@ -27,6 +27,7 @@ class LBM:
         self.tilt_angle = kwargs.get("tilt_angle", 0)
         self.x = jnp.arange(1, self.nx+1) - 0.5
         self.y = jnp.arange(1, self.ny+1) - 0.5
+        self.sim_name = str(self)
 
         # defining the following lattice parameters isn't necessary, just refer using self.lattice.x
         # self.d = self.lattice.d #space dimensions number from lattice
@@ -40,11 +41,14 @@ class LBM:
         self.u_dimension = tuple((*self.dimensions, self.lattice.d))
 
         #TODO do not include this in main LBM function, find something better
-        today = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        today = datetime.datetime.now().strftime(f"{self.sim_name}-%Y-%m-%d_%H-%M-%S")
         cwd = os.path.abspath(__file__)
         self.sav_dir = os.path.join(os.path.dirname(cwd), "../test", today)
         if not os.path.isdir(self.sav_dir):
             os.makedirs(self.sav_dir)
+
+    def __str__(self):
+        return "undefined_sim"
 
     def run(self, nt):
         """
@@ -88,17 +92,20 @@ class LBM:
         """
         force_prev = self.force_term(f_prev)
         source_prev = self.source_term(f_prev, force_prev)
-        f_post_col = self.collision(f_prev, source_prev)
+        f_post_col = self.collision(f_prev, source_prev, force_prev)
+        # f_post_col = self.collision(f_prev)
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
         f_post_stream = self.stream(f_post_col)
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
         return f_post_stream, f_prev
 
     @partial(jit, static_argnums=0, inline=True)
-    def macro_vars(self, f):
+    def macro_vars(self, f, force=None):
         rho = jnp.sum(f, axis=-1)
-        # u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #<- does not work with poiseuille BC :(
+        u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis]
         u = jnp.dot(f, self.lattice.c.T)
+        if force is not None:
+            u = self.apply_force(u, force)
         return rho, u
 
     def write_disk(self):
@@ -109,7 +116,7 @@ class LBM:
         #TODO
         pass
 
-    def collision(self, f, source):
+    def collision(self, f, source, force):
         """
         --Specified in model class--
         Applies collision
@@ -128,15 +135,18 @@ class LBM:
         force_g = - rho * self.g_set
         force_parr = - force_g * jnp.sin(self.tilt_angle)
         force_perp = force_g * jnp.cos(self.tilt_angle)
-        force_components = jnp.stack((force_parr, force_perp), axis=0)
+        force_components = jnp.stack((force_parr, force_perp), axis=-1)
         return force_components
 
     def apply_force(self, u, force):
-        return u*0.5*force
+        u = u+0.5*force
+        return u
 
-    def source_term(self, u, force):
+    def source_term(self, f, force):
+        rho, u = self.macro_vars(f, force)
         ux, uy = u[:,:,0], u[:,:,1]
-        fx, fy = force[0], force[1]
+        # ux, uy = u[0], u[1]
+        fx, fy = force[:,:,0], force[:,:,1]
         cx, cy = self.lattice.c[0], self.lattice.c[1]
         source_ = jnp.zeros((self.nx, self.ny, 9))
         source_ = source_.at[:, :, 0].set(self.lattice.w[0] * (3 * (cx[0] * fx + cy[0] * fy) - 3 * (ux * fx + uy * fy) +
@@ -217,6 +227,6 @@ class LBM:
         plt.gca().invert_yaxis()
         plt.colorbar()
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + "/fig_13_it" + str(it) + ".jpg")
+        plt.savefig(self.sav_dir + f"/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
 
