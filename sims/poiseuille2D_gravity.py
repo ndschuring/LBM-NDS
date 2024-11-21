@@ -8,6 +8,9 @@ class Poiseuille(BGK):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    def __str__(self):
+        return "Poiseuille_gravity_force"
+
     def apply_bc(self, f, f_prev):
         def bb_vertical_tube2D(f_i):
             # bounce-back left wall
@@ -32,11 +35,10 @@ class Poiseuille(BGK):
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
-        plt.plot(self.x, u[:, int(self.nx / 2), 1], label="Velocity Profile")
-        plt.legend()
-        plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
-        plt.clf()
-
+        # plt.plot(self.x, u[:, int(self.nx / 2), 1], label="Velocity Profile")
+        # plt.legend()
+        # plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
+        # plt.clf()
 
 if __name__ == "__main__":
     time1 = time.time()

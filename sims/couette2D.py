@@ -21,6 +21,9 @@ class couette(BGK):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    def __str__(self):
+        return "Couette_Flow"
+
     def apply_bc(self, f, f_prev):
         def bounce_back_couette2D(f_i, f_prev):
             # Bounce-back top wall
@@ -39,16 +42,18 @@ if __name__ == "__main__":
     time1 = time.time()
     nx = 180
     ny = 30
-    nt = 1000
+    nt = int(1e4)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
+    plot_every = 100
     kwargs = {
         'lattice': lattice,
         'tau': tau,
         'nx': nx,
         'ny': ny,
         'rho0': rho0,
+        'plot_every': plot_every,
     }
     sim = couette(**kwargs)
     sim.run(nt)

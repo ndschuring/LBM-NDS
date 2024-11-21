@@ -31,6 +31,9 @@ class Poiseuille(BGK):
         self.y = jnp.arange(1, self.ny+1) - 0.5
         self.analytical_solution = self.poiseuille_analytical()
 
+    def __str__(self):
+        return "Poiseuille_LBMBookBC"
+
     def apply_bc(self, f, f_prev):
         def bounce_back_tube2D(f_i, f_prev):
             # Bounce-back top wall
@@ -62,6 +65,7 @@ class Poiseuille(BGK):
         return u_analytical
 
     def plot(self, f, it):
+        sim_name = str(self)
         rho, u = self.macro_vars(f)
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
         plt.imshow(u[:,:,0].T, cmap='viridis')
@@ -71,13 +75,13 @@ class Poiseuille(BGK):
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
-        plt.plot(self.y, u[int(self.nx/2),:,0], label="Poiseuille2D.py")
-        plt.plot(self.y, self.analytical_solution, label="analytical solution")
-        plt.plot(self.y, self.analytical_solution-u[int(self.nx/2),:,0], label="difference")
-        plt.ylim(0, self.u_max)
-        plt.legend()
-        plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
-        plt.clf()
+        # plt.plot(self.y, u[int(self.nx/2),:,0], label="Poiseuille2D.py")
+        # plt.plot(self.y, self.analytical_solution, label="analytical solution")
+        # plt.plot(self.y, self.analytical_solution-u[int(self.nx/2),:,0], label="difference")
+        # plt.ylim(0, self.u_max)
+        # plt.legend()
+        # plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
+        # plt.clf()
 
 
 if __name__ == "__main__":
@@ -88,6 +92,7 @@ if __name__ == "__main__":
     rho0 = 1
     # tau = 1
     lattice = LatticeD2Q9()
+    plot_every = 100
 
     # tau = jnp.sqrt(3/16) + 0.5             #relaxation time
     tau = 1
@@ -107,6 +112,7 @@ if __name__ == "__main__":
         'gradP': gradP,
         'rho_outlet': rho_outlet,
         'rho_inlet': rho_inlet,
+        'plot_every': plot_every,
     }
     simPoiseuille = Poiseuille(**kwargs)
     simPoiseuille.run(nt)
