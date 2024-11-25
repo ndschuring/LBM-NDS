@@ -15,26 +15,22 @@ from jax import jit
 
 class LBM:
     def __init__(self, **kwargs):
+        # Initialisation Parameters
         self.nx = kwargs.get("nx") #x dimension
         self.ny = kwargs.get("ny") #y dimension
         self.nz = kwargs.get("nz") #z dimension
-        # self.nt = kwargs.get("nt") #time steps #make argument of run()
-        self.rho0 = kwargs.get("rho0") #density for initialisation
-        self.boundary_conditions = kwargs.get("boundary_conditions")
         self.lattice = kwargs.get("lattice") #set lattice
-        self.plot_every = kwargs.get("plot_every", 50)
-        self.g_set = kwargs.get("g_set", 0)
-        self.tilt_angle = kwargs.get("tilt_angle", 0)
+        self.rho0 = kwargs.get("rho0") #density for initialisation
+        self.cs2 = kwargs.get("cs2", 1/3) #lattice speed of sound
+        # Gravity Parameters
+        self.g_set = kwargs.get("g_set", 0) # gravitational constant
+        self.tilt_angle = kwargs.get("tilt_angle", 0) # angle of system if gravity
+        # Plotting Parameters
         self.x = jnp.arange(1, self.nx+1) - 0.5
         self.y = jnp.arange(1, self.ny+1) - 0.5
+        self.plot_every = kwargs.get("plot_every", 50)
         self.sim_name = str(self)
-
-        # defining the following lattice parameters isn't necessary, just refer using self.lattice.x
-        # self.d = self.lattice.d #space dimensions number from lattice
-        # self.q = self.lattice.q #velocity dimensions number from lattice
-        # self.c = self.lattice.c #lattice velocities corresponding to lattice type
-        # self.w = self.lattice.w #weights corresponding to lattice velocities
-
+        # Determine dimensions based on lattice
         self.dimensions = [self.nx or 0, self.ny or 0, self.nz or 0]
         self.dimensions = self.dimensions[:self.lattice.d]
         self.rho_dimension = tuple(self.dimensions)
@@ -102,8 +98,8 @@ class LBM:
     @partial(jit, static_argnums=0, inline=True)
     def macro_vars(self, f, force=None):
         rho = jnp.sum(f, axis=-1)
-        u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis]
-        u = jnp.dot(f, self.lattice.c.T)
+        u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
+        # u = jnp.dot(f, self.lattice.c.T) #momentum
         if force is not None:
             u = self.apply_force(u, force)
         return rho, u
