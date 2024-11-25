@@ -17,7 +17,7 @@ Periodic|                                           |Periodic
 
 
 
-class couette(BGK):
+class Couette(BGK):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         'rho0': rho0,
         'plot_every': plot_every,
     }
-    sim = couette(**kwargs)
+    sim = Couette(**kwargs)
     sim.run(nt)
     time2 = time.time()
     print(time2-time1)

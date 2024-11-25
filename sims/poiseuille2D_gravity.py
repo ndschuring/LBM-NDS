@@ -14,13 +14,13 @@ class Poiseuille(BGK):
     def apply_bc(self, f, f_prev):
         def bb_vertical_tube2D(f_i):
             # bounce-back left wall
-            f_i = f_i.at[0, :, 5].set(f_i[0, -1, 7])
-            f_i = f_i.at[0, :, 1].set(f_i[0, -1, 3])
-            f_i = f_i.at[0, :, 8].set(f_i[0, -1, 6])
+            f_i = f_i.at[0, :, 5].set(f_prev[0, -1, 7])
+            f_i = f_i.at[0, :, 1].set(f_prev[0, -1, 3])
+            f_i = f_i.at[0, :, 8].set(f_prev[0, -1, 6])
             # bounce-back right wall
-            f_i = f_i.at[-1, :, 6].set(f_i[-1, 0, 8])
-            f_i = f_i.at[-1, :, 3].set(f_i[-1, 0, 1])
-            f_i = f_i.at[-1, :, 7].set(f_i[-1, 0, 5])
+            f_i = f_i.at[-1, :, 6].set(f_prev[-1, 0, 8])
+            f_i = f_i.at[-1, :, 3].set(f_prev[-1, 0, 1])
+            f_i = f_i.at[-1, :, 7].set(f_prev[-1, 0, 5])
             return f_i
         f = bb_vertical_tube2D(f)
         return f
