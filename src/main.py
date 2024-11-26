@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import os
 import datetime
 from functools import partial
+
+import numpy as np
 from jax import jit
 
 #    6   2   5
@@ -101,7 +103,7 @@ class LBM:
         u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
         # u = jnp.dot(f, self.lattice.c.T) #momentum
         if force is not None:
-            u = self.apply_force(u, force)
+            u += force/(2*rho[..., jnp.newaxis])
         return rho, u
 
     def write_disk(self):
@@ -133,10 +135,6 @@ class LBM:
         force_perp = force_g * jnp.cos(self.tilt_angle)
         force_components = jnp.stack((force_parr, force_perp), axis=-1)
         return force_components
-
-    def apply_force(self, u, force):
-        u = u+0.5*force
-        return u
 
     def source_term(self, f, force):
         rho, u = self.macro_vars(f, force)
@@ -203,13 +201,20 @@ class LBM:
     #         shifted_f = shifted_f.at[:, :, k].set(jnp.roll(f[:, :, k], shift=(self.lattice.c[0, k], self.lattice.c[1, k]), axis=(0, 1)))
     #     return shifted_f
 
+    # @partial(jax.jit, static_argnums=0)
+    # def equilibrium(self, rho, u):
+    #     # Scheme from LBM book, linear equilibrium with incompressible model from sample code
+    #     # Calculate the dot product of u and c
+    #     uc_dot = u[:, :, 0][:, :, jnp.newaxis] * self.lattice.c[0, :] + u[:, :, 1][:, :, jnp.newaxis] * self.lattice.c[1, :]
+    #     # Multiply by 3 and add rho
+    #     f_eq = self.lattice.w * (rho[:, :, jnp.newaxis] + 3 * uc_dot)
+    #     return f_eq
+
     @partial(jax.jit, static_argnums=0)
     def equilibrium(self, rho, u):
-        # Scheme from LBM book, linear equilibrium with incompressible model from sample code
-        # Calculate the dot product of u and c
-        uc_dot = u[:, :, 0][:, :, jnp.newaxis] * self.lattice.c[0, :] + u[:, :, 1][:, :, jnp.newaxis] * self.lattice.c[1, :]
-        # Multiply by 3 and add rho
-        f_eq = self.lattice.w * (rho[:, :, jnp.newaxis] + 3 * uc_dot)
+        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
+        uu_dot = jnp.sum(jnp.square(u), axis=-1) / (2*self.cs2)
+        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (1 + (uc_dot/self.cs2) + ((uc_dot**2)/(2*self.cs2**2)) - uu_dot[:,:,jnp.newaxis])
         return f_eq
 
     def plot(self, f, it):
