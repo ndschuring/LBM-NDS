@@ -16,7 +16,7 @@ class BGK(LBM):
         # return (1 - 1 / self.tau) * f + (1 / self.tau) * f_eq + (1 - 1 / (2 * self.tau)) * source
         # return (1 - 1 / self.tau) * f + (1 / self.tau) * f_eq + source
         # return f - 1/self.tau*(f - f_eq) + source
-        return f- 1/self.tau*(f-f_eq)+(1 - 1/2*self.tau)*source
+        return f- 1/self.tau*(f-f_eq)+(1 - 1/(2*self.tau))*source
 
 class MRT(LBM):
     def __init__(self, **kwargs):
