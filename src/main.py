@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import os
 import datetime
 from functools import partial
+import vtk
+from vtk.util import numpy_support
+import numpy as np
 
 import numpy as np
 from jax import jit
@@ -22,8 +25,15 @@ class LBM:
         self.ny = kwargs.get("ny") #y dimension
         self.nz = kwargs.get("nz") #z dimension
         self.lattice = kwargs.get("lattice") #set lattice
-        self.rho0 = kwargs.get("rho0") #density for initialisation
-        self.cs2 = kwargs.get("cs2", 1/3) #lattice speed of sound
+            # set dimensions based on lattice
+        self.dimensions = [self.nx or 0, self.ny or 0, self.nz or 0]
+        self.dimensions = self.dimensions[:self.lattice.d]
+        self.rho_dimension = tuple(self.dimensions)
+        self.u_dimension = tuple((*self.dimensions, self.lattice.d))
+
+        self.rho0 = kwargs.get("rho0", 1) #density for initialisation
+        self.rho0_ones = jnp.ones(self.rho_dimension)*self.rho0
+        # self.cs2 = kwargs.get("cs2", 1/3) #lattice speed of sound #TODO replace with lattice version of constant!
         # Gravity Parameters
         self.g_set = kwargs.get("g_set", 0) # gravitational constant
         self.tilt_angle = kwargs.get("tilt_angle", 0) # angle of system if gravity
@@ -32,11 +42,9 @@ class LBM:
         self.y = jnp.arange(1, self.ny+1) - 0.5
         self.plot_every = kwargs.get("plot_every", 50)
         self.sim_name = str(self)
-        # Determine dimensions based on lattice
-        self.dimensions = [self.nx or 0, self.ny or 0, self.nz or 0]
-        self.dimensions = self.dimensions[:self.lattice.d]
-        self.rho_dimension = tuple(self.dimensions)
-        self.u_dimension = tuple((*self.dimensions, self.lattice.d))
+
+        self.write = kwargs.get("write", False)
+        self.debug = kwargs.get("debug", False)
 
         #TODO do not include this in main LBM function, find something better
         today = datetime.datetime.now().strftime(f"{self.sim_name}-%Y-%m-%d_%H-%M-%S")
@@ -61,6 +69,8 @@ class LBM:
         f = self.initialize()
         for it in range(nt):
             f, f_prev = self.update(f) #updates f
+            if it % self.plot_every == 0 and self.write:
+                self.write_disk(f, nt)
             if it % self.plot_every == 0:
                 self.plot(f, it)
         return f
@@ -75,6 +85,9 @@ class LBM:
         u = jnp.zeros(self.u_dimension)
         rho = self.rho0 * jnp.ones(self.rho_dimension)
         f = self.equilibrium(rho, u)
+        # if self.debug:
+        #     f_eq_debug1 = self.equilibrium(rho, u)
+        #     f_eq_debug2 = self.equilibrium_new(rho, u)
         return f
 
     @partial(jax.jit, static_argnums=0)
@@ -106,14 +119,6 @@ class LBM:
             u += force/(2*rho[..., jnp.newaxis])
         return rho, u
 
-    def write_disk(self):
-        """
-        store macroscopic values in array for use of outside visualisation software.
-        Writing an XML of some kind for VTK to be implemented in ParaView
-        """
-        #TODO
-        pass
-
     def collision(self, f, source, force):
         """
         --Specified in model class--
@@ -121,7 +126,7 @@ class LBM:
         """
         pass
 
-    def apply_bc(self, f, f_prev):
+    def apply_bc(self, f, f_prev, force=None):
         """
         --Specified in simulation class--
         Applies boundary conditions after streaming
@@ -172,7 +177,7 @@ class LBM:
                     8] * ux * fy + cy[8] * cy[8] * uy * fy)))
         return source_
 
-    def apply_pre_bc(self, f, f_prev):
+    def apply_pre_bc(self, f, f_prev, force=None):
         """
         --Specified in simulation class--
         Applies boundary conditions before streaming
@@ -201,21 +206,127 @@ class LBM:
     #         shifted_f = shifted_f.at[:, :, k].set(jnp.roll(f[:, :, k], shift=(self.lattice.c[0, k], self.lattice.c[1, k]), axis=(0, 1)))
     #     return shifted_f
 
-    # @partial(jax.jit, static_argnums=0)
-    # def equilibrium(self, rho, u):
-    #     # Scheme from LBM book, linear equilibrium with incompressible model from sample code
-    #     # Calculate the dot product of u and c
-    #     uc_dot = u[:, :, 0][:, :, jnp.newaxis] * self.lattice.c[0, :] + u[:, :, 1][:, :, jnp.newaxis] * self.lattice.c[1, :]
-    #     # Multiply by 3 and add rho
-    #     f_eq = self.lattice.w * (rho[:, :, jnp.newaxis] + 3 * uc_dot)
-    #     return f_eq
+    @partial(jax.jit, static_argnums=0)
+    def equilibrium_(self, rho, u):
+        # Scheme from LBM book, linear equilibrium with incompressible model from sample code
+        # Calculate the dot product of u and c
+        uc_dot = u[:, :, 0][:, :, jnp.newaxis] * self.lattice.c[0, :] + u[:, :, 1][:, :, jnp.newaxis] * self.lattice.c[1, :]
+        # Multiply by 3 and add rho
+        f_eq = self.lattice.w * (rho[:, :, jnp.newaxis] + 3 * uc_dot)
+        return f_eq
 
     @partial(jax.jit, static_argnums=0)
     def equilibrium(self, rho, u):
+        # using equation 3.4 of LBM book
         uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-        uu_dot = jnp.sum(jnp.square(u), axis=-1) / (2*self.cs2)
-        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (1 + (uc_dot/self.cs2) + ((uc_dot**2)/(2*self.cs2**2)) - uu_dot[:,:,jnp.newaxis])
+        uu_dot = jnp.sum(jnp.square(u), axis=-1) / (2*self.lattice.cs2)
+        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (1 + (uc_dot/self.lattice.cs2) + ((uc_dot**2)/(2*self.lattice.cs2**2)) - uu_dot[:,:,jnp.newaxis])
         return f_eq
+
+    @partial(jax.jit, static_argnums=0)
+    def equilibrium_(self, rho, u):
+        # using equation 3.54 of LBM book
+        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
+        cc_dot = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
+        cc_diff = cc_dot - (self.lattice.cs2 * jnp.eye(self.lattice.d))
+        uu = u[..., None] * u[..., None, :]
+        term1 = 1
+        term2 = uc_dot / self.lattice.cs2
+        term3 = jnp.tensordot(uu, cc_diff, axes=([[-1, -2], [-1, -2]])) / (2 * self.lattice.cs2 ** 2)
+        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (term1 + term2 + term3)
+        return f_eq
+
+    @partial(jax.jit, static_argnums=0)
+    def equilibrium_(self, rho, u):
+        # AI "optimized" version of above
+        # Pre-compute common terms
+        u_squared = jnp.sum(u ** 2, axis=-1)
+
+        # Compute cu using broadcasting
+        cu = jnp.einsum('id,xy...d->xyi', self.lattice.c.T, u)
+
+        # Compute equilibrium distribution
+        f_eq = self.lattice.w[None, None, :] * rho[..., None] * (
+                1.0
+                + cu / self.lattice.cs2
+                + (cu ** 2 / (2 * self.lattice.cs2 ** 2))
+                - u_squared[..., None] / (2 * self.lattice.cs2)
+        )
+        return f_eq
+
+    @partial(jax.jit, static_argnums=0)
+    def equilibrium_(self, rho, u):
+        # using equation 4.42 of LBM book (for incompressible flows)
+        # Only works for gravity driven poiseuille and couette
+        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
+        cc_dot = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
+        cc_diff = cc_dot - (self.lattice.cs2 * jnp.eye(self.lattice.d))
+        uu = u[..., None] * u[..., None, :]
+        term2 = uc_dot / self.lattice.cs2
+        term3 = jnp.tensordot(uu, cc_diff, axes=([[-1, -2], [-1, -2]])) / (2 * self.lattice.cs2 ** 2)
+        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] + self.lattice.w[jnp.newaxis, jnp.newaxis, :] * self.rho0_ones[:, :, jnp.newaxis] * (term2 + term3)
+        return f_eq
+
+
+    # @partial(jax.jit, static_argnums=0)
+    # def equilibrium(self, rho, u):
+    #     uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
+    #     uu_dot = jnp.sum(jnp.square(u), axis=-1)
+    #     rho_debug = self.rho0
+    #     d_debug = self.lattice.d
+    #     trace_cici = jnp.trace(jnp.outer(self.lattice.c, self.lattice.c))
+    #     f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * (rho[:, :, jnp.newaxis] + self.rho0*(
+    #         (uc_dot/self.lattice.cs2) + (uu_dot[:,:,jnp.newaxis]/(2*self.lattice.cs2**2))*(trace_cici-self.lattice.cs2*self.lattice.d)
+    #     ))
+    #     return f_eq
+
+    # def equilibrium(self, rho, u):
+    #     uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
+    #     uu_dot = jnp.sum(jnp.square(u), axis=-1)
+    #     uu_dot = jnp.transpose(u)[:, :, None] * jnp.transpose(u)[:, None, :]
+    #     rho_debug = self.rho0
+    #     d_debug = self.lattice.d
+    #     cici = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
+    #     f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * (rho[:, :, jnp.newaxis] + self.rho0*(
+    #         (uc_dot/self.lattice.cs2) + (uu_dot[:,:,jnp.newaxis]/(2*self.lattice.cs2**2))*(trace_cici-self.lattice.cs2*self.lattice.d)
+    #     ))
+    #     return f_eq
+
+
+    def write_disk(self, f, nt):
+        """
+        store macroscopic values in array for use of outside visualisation software.
+        Writing an XML of some kind for VTK to be implemented in ParaView
+        """
+        rho, u = self.macro_vars(f)
+        # def save_vtk_timestep(u, rho, nt, output_path):
+        #     # Create VTK grid
+        #     grid = vtk.vtkstructuredGrid()
+        #     grid.SetDimensions(self.nx, self.ny, 1)
+
+            # create points
+            # # Add velocity data
+            # vel_flat = np.zeros((velocity.shape[0] * velocity.shape[1], 3))
+            # vel_flat[:, 0] = velocity[:, :, 0].flatten()
+            # vel_flat[:, 1] = velocity[:, :, 1].flatten()
+            # vtk_velocity = numpy_support.numpy_to_vtk(vel_flat)
+            # vtk_velocity.SetName("velocity")
+            #
+            # # Add density data
+            # vtk_density = numpy_support.numpy_to_vtk(density.flatten())
+            # vtk_density.SetName("density")
+            #
+            # # Attach data to grid
+            # grid.GetPointData().AddArray(vtk_velocity)
+            # grid.GetPointData().AddArray(vtk_density)
+            #
+            # # Write to file
+            # writer = vtk.vtkXMLImageDataWriter()
+            # writer.SetFileName(f"{output_path}/lbm_t{timestep:04d}.vti")
+            # writer.SetInputData(grid)
+            # writer.Write()
+
+        pass
 
     def plot(self, f, it):
         #TODO Has to be a better way to visualise this data
@@ -230,4 +341,3 @@ class LBM:
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
         plt.savefig(self.sav_dir + f"/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
-
