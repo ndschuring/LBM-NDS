@@ -3,7 +3,9 @@ from src.lattice import LatticeD2Q9
 from src.model import BGK
 import jax.numpy as jnp
 import time
-
+"""
+2D poiseuille flow driven by gravity-like body force
+"""
 class Poiseuille(BGK):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -14,13 +16,15 @@ class Poiseuille(BGK):
     def apply_bc(self, f, f_prev):
         def bb_vertical_tube2D(f_i):
             # bounce-back left wall
-            f_i = f_i.at[0, :, 5].set(f_prev[0, -1, 7])
-            f_i = f_i.at[0, :, 1].set(f_prev[0, -1, 3])
-            f_i = f_i.at[0, :, 8].set(f_prev[0, -1, 6])
+            # f_i = f_i.at[0, :, 5].set(f_prev[0, :, 7])
+            # f_i = f_i.at[0, :, 1].set(f_prev[0, :, 3])
+            # f_i = f_i.at[0, :, 8].set(f_prev[0, :, 6])
+            f_i = f_i.at[0, :, self.lattice.right_indices].set(f_prev[0, :, self.lattice.opp_indices[self.lattice.right_indices]])
             # bounce-back right wall
-            f_i = f_i.at[-1, :, 6].set(f_prev[-1, 0, 8])
-            f_i = f_i.at[-1, :, 3].set(f_prev[-1, 0, 1])
-            f_i = f_i.at[-1, :, 7].set(f_prev[-1, 0, 5])
+            # f_i = f_i.at[-1, :, 6].set(f_prev[-1, :, 8])
+            # f_i = f_i.at[-1, :, 3].set(f_prev[-1, :, 1])
+            # f_i = f_i.at[-1, :, 7].set(f_prev[-1, :, 5])
+            f_i = f_i.at[-1, :, self.lattice.left_indices].set(f_prev[-1, :, self.lattice.opp_indices[self.lattice.left_indices]])
             return f_i
         f = bb_vertical_tube2D(f)
         return f
