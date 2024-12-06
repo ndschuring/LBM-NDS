@@ -82,9 +82,7 @@ if __name__ == "__main__":
     ny = 30
     nt = int(1e4)
     rho0 = 1
-    # tau = 1
     lattice = LatticeD2Q9()
-
     # tau = jnp.sqrt(3/16) + 0.5             #relaxation time
     tau = 1
     nu = (2 * tau - 1) / 6                    #kinematic shear velocity
@@ -92,7 +90,6 @@ if __name__ == "__main__":
     gradP = 8 * nu * u_max / ny ** 2    #pressure gradient
     rho_outlet = rho0
     rho_inlet = 3 * (nx - 1) * gradP + rho_outlet
-
     kwargs = {
         'lattice': lattice,
         'tau': tau,

@@ -14,7 +14,7 @@ class Poiseuille(BGK):
     def __str__(self):
         return "Poiseuille_NEBB"
 
-    def apply_bc(self, f, f_prev):
+    def apply_bc(self, f, f_prev, force=None):
         rho, u = self.macro_vars(f_prev)
         def bb_tube2d(f_i):
             # bounce-back top wall
@@ -84,12 +84,6 @@ class Poiseuille(BGK):
         # f = nebb_bottom(f)
         # f = nebb_corner_correction(f)
         return f
-
-    # def force_term(self, f):
-    #     force_x = jnp.zeros((self.nx, self.ny))
-    #     force_x = force_x.at[0, :].set(1)
-    #     return jnp.stack((force_x, jnp.zeros_like(force_x)), axis=-1)
-    #     # return jnp.stack((rho, rho), axis=-1)
 
     def plot(self, f, it):
         rho, u = self.macro_vars(f)

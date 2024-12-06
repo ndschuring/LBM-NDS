@@ -17,8 +17,6 @@ Periodic|                                           |Periodic
                         No slip BC
 """
 
-
-
 class Couette(BGK):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -27,7 +25,7 @@ class Couette(BGK):
     def __str__(self):
         return "Couette_Flow_alt"
 
-    def apply_bc(self, f, f_prev):
+    def apply_bc(self, f, f_prev, force=None):
         def bounce_back_couette2D(f_i, f_prev):
             rho, u = self.macro_vars(f_i)
             # Bounce-back top wall
@@ -51,8 +49,6 @@ class Couette(BGK):
         #     return f_i
         def moving_wall_correction(f_i):
             return f_i
-
-        rho, u = self.macro_vars(f)
         f_i = bounce_back_couette2D(f, f_prev)
         # f_i = moving_wall_correction(f_i)
         # f_i.at[:, -1, self.lattice.bottom_indices].add(u)
@@ -82,8 +78,6 @@ class Couette(BGK):
         # plt.savefig(self.sav_dir + "/fig_error_it" + str(it) + ".jpg")
         # plt.clf()
 
-
-
 def couette_analytical():
     y = jnp.arange(1, ny + 1) - 0.5
     ybottom = 0
@@ -96,7 +90,6 @@ if __name__ == "__main__":
     nx = 180
     ny = 30
     nt = int(1e4)
-    # nt = int(1e2)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
@@ -113,7 +106,6 @@ if __name__ == "__main__":
         'rho0': rho0,
         'plot_every': plot_every,
         'u_bc': u_bc,
-        'debug': False,
     }
     sim = Couette(**kwargs)
     sim.run(nt)

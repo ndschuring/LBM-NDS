@@ -5,6 +5,7 @@ import time
 Couette Flow
 
                 Moving Wall BC (Krüger et al.)
+                lbm-principles code
         +-------------------------------------------+
         |                  ------>                  |
 Periodic|                                           |Periodic
@@ -14,8 +15,6 @@ Periodic|                                           |Periodic
         +-------------------------------------------+
                         No slip BC
 """
-
-
 
 class Couette(BGK):
     def __init__(self, **kwargs):

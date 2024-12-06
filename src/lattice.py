@@ -21,21 +21,25 @@ class Lattice:
             self.back_indices = jnp.array(self.back_indices())
 
     def lattice_velocity(self):
-        if self.name == "D2Q9":
-            ci = jnp.array([[0, 1, 0,-1, 0, 1,-1,-1, 1],  # Velocities x components
-                            [0, 0, 1, 0,-1, 1, 1,-1,-1]])  # Velocities y components
+        if self.name == "D1Q3":
+            ci = jnp.array([0, 1, -1]) # Velocities x-component
+        elif self.name == "D2Q9":
+            ci = jnp.array([[0, 1, 0,-1, 0, 1,-1,-1, 1],  # Velocities x-components
+                            [0, 0, 1, 0,-1, 1, 1,-1,-1]])  # Velocities y-components
         elif self.name == "D3Q27":
             ci = jnp.array([
-                [0, 1, -1, 0,  0, 0,  0, 1, -1, 1, -1, 0,  0,  1, -1,  1, -1,  0,  0, 1, -1,  1, -1,  1, -1, -1,  1],
-                [0, 0,  0, 1, -1, 0,  0, 1, -1, 0,  0, 1, -1, -1,  1,  0,  0,  1, -1, 1, -1,  1, -1, -1,  1,  1, -1],
-                [0, 0,  0, 0,  0, 1, -1, 0,  0, 1, -1, 1, -1,  0,  0, -1,  1, -1,  1, 1, -1, -1,  1,  1, -1,  1, -1]
+                [0, 1, -1, 0,  0, 0,  0, 1, -1, 1, -1, 0,  0,  1, -1,  1, -1,  0,  0, 1, -1,  1, -1,  1, -1, -1,  1], #Velocities x-components
+                [0, 0,  0, 1, -1, 0,  0, 1, -1, 0,  0, 1, -1, -1,  1,  0,  0,  1, -1, 1, -1,  1, -1, -1,  1,  1, -1], #Velocities y-components
+                [0, 0,  0, 0,  0, 1, -1, 0,  0, 1, -1, 1, -1,  0,  0, -1,  1, -1,  1, 1, -1, -1,  1,  1, -1,  1, -1]  #Velocities z-components
             ])
         else:
             raise ValueError("This Lattice type is not supported")
         return ci
 
     def lattice_weight(self):
-        if self.name == "D2Q9":
+        if self.name == "D1Q3":
+            wi = jnp.array([2 / 3, 1 / 3, 1 / 3])
+        elif self.name == "D2Q9":
             wi = jnp.array([4 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 36, 1 / 36, 1 / 36, 1 / 36])
         elif self.name == "D3Q27":
             wi = jnp.array([8 / 27, 2 / 27, 2 / 27, 2 / 27, 2 / 27, 2 / 27, 2 / 27,

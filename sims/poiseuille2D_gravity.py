@@ -4,7 +4,8 @@ from src.model import BGK
 import jax.numpy as jnp
 import time
 """
-2D poiseuille flow driven by gravity-like body force
+2D poiseuille flow driven by gravity-like body force.
+Vertical tube domain, no tilt.
 """
 class Poiseuille(BGK):
     def __init__(self, **kwargs):
@@ -13,7 +14,7 @@ class Poiseuille(BGK):
     def __str__(self):
         return "Poiseuille_gravity_force"
 
-    def apply_bc(self, f, f_prev):
+    def apply_bc(self, f, f_prev, force=None):
         def bb_vertical_tube2D(f_i):
             # bounce-back left wall
             # f_i = f_i.at[0, :, 5].set(f_prev[0, :, 7])

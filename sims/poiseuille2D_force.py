@@ -7,6 +7,7 @@ import time
 """
 2D Poiseuille flow driven by inlet force and outlet neumann boundary condition
 """
+#WIP
 #TODO inlet force BC
 #TODO outlet neumann BC
 

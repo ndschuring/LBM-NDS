@@ -6,17 +6,8 @@ import os
 import datetime
 from functools import partial
 import vtk
-from vtk.util import numpy_support
-import numpy as np
-
 import numpy as np
 from jax import jit
-
-#    6   2   5
-#      \ | /
-#    3 - 0 - 1
-#      / | \
-#    7   4   8
 
 class LBM:
     def __init__(self, **kwargs):
@@ -63,8 +54,9 @@ class LBM:
             Initialise()
         2. iterate over nt
             update()
-        3. store values
-            #TODO
+        3. store or plots values
+            write_disk()
+            plot()
         """
         f = self.initialize()
         for it in range(nt):
@@ -85,21 +77,24 @@ class LBM:
         u = jnp.zeros(self.u_dimension)
         rho = self.rho0 * jnp.ones(self.rho_dimension)
         f = self.equilibrium(rho, u)
-        # if self.debug:
-        #     f_eq_debug1 = self.equilibrium(rho, u)
-        #     f_eq_debug2 = self.equilibrium_new(rho, u)
         return f
 
     @partial(jax.jit, static_argnums=0)
     def update(self, f_prev):
         """
         updates discrete velocities
-            1. Collision step
-                collision(f)
-            2. Apply Boundary conditions
-                (on simulation level)
-            3. Stream discrete velocities
-                stream(f)
+            1. Calculate forcing term
+                force_term()
+            2. Calculate source term from force
+                source_term()
+            3. Collision step, apply force
+                collision()
+            4. Apply pre-streaming boundary conditions
+                apply_pre_bc()
+            5. Stream discrete velocities to neighbours
+                stream()
+            6. Apply post-streaming boundary conditions
+                apply_bc()
         """
         force_prev = self.force_term(f_prev)
         source_prev = self.source_term(f_prev, force_prev)
@@ -112,9 +107,14 @@ class LBM:
 
     @partial(jit, static_argnums=0, inline=True)
     def macro_vars(self, f, force=None):
+        """
+        Calculate macroscopic variables using method of moments
+        0th moment: density rho
+        1st moment: momentum
+        """
         rho = jnp.sum(f, axis=-1)
         u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
-        # u = jnp.dot(f, self.lattice.c.T) #momentum
+        # u = jnp.dot(f, self.lattice.c.T)
         if force is not None:
             u += force/(2*rho[..., jnp.newaxis])
         return rho, u
@@ -122,7 +122,7 @@ class LBM:
     def collision(self, f, source, force):
         """
         --Specified in model class--
-        Applies collision
+        Applies collision operator
         """
         pass
 
@@ -188,7 +188,8 @@ class LBM:
     @partial(jit, static_argnums=(0,))
     def stream(self, f):
         """
-        Streams discrete velocities to neighbors.
+        Streams discrete velocities to neighbours in up to 3D
+        Applies inherent periodic BC from rolling matrix
         """
         def stream_i(f_i, c):
             if self.lattice.d == 1:
@@ -198,13 +199,6 @@ class LBM:
             if self.lattice.d == 3:
                 return jnp.roll(f_i, (c[0], c[1], c[2]), axis=(0, 1, 2))
         return jax.vmap(stream_i, in_axes=(-1, 0), out_axes=-1)(f, self.lattice.c.T)
-
-    # alternative streaming function
-    # def stream(self, f):
-    #     shifted_f = jnp.zeros_like(f)
-    #     for k in range(self.lattice.c.shape[1]):
-    #         shifted_f = shifted_f.at[:, :, k].set(jnp.roll(f[:, :, k], shift=(self.lattice.c[0, k], self.lattice.c[1, k]), axis=(0, 1)))
-    #     return shifted_f
 
     @partial(jax.jit, static_argnums=0)
     def equilibrium_(self, rho, u):
@@ -267,36 +261,11 @@ class LBM:
         f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] + self.lattice.w[jnp.newaxis, jnp.newaxis, :] * self.rho0_ones[:, :, jnp.newaxis] * (term2 + term3)
         return f_eq
 
-
-    # @partial(jax.jit, static_argnums=0)
-    # def equilibrium(self, rho, u):
-    #     uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-    #     uu_dot = jnp.sum(jnp.square(u), axis=-1)
-    #     rho_debug = self.rho0
-    #     d_debug = self.lattice.d
-    #     trace_cici = jnp.trace(jnp.outer(self.lattice.c, self.lattice.c))
-    #     f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * (rho[:, :, jnp.newaxis] + self.rho0*(
-    #         (uc_dot/self.lattice.cs2) + (uu_dot[:,:,jnp.newaxis]/(2*self.lattice.cs2**2))*(trace_cici-self.lattice.cs2*self.lattice.d)
-    #     ))
-    #     return f_eq
-
-    # def equilibrium(self, rho, u):
-    #     uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-    #     uu_dot = jnp.sum(jnp.square(u), axis=-1)
-    #     uu_dot = jnp.transpose(u)[:, :, None] * jnp.transpose(u)[:, None, :]
-    #     rho_debug = self.rho0
-    #     d_debug = self.lattice.d
-    #     cici = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
-    #     f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * (rho[:, :, jnp.newaxis] + self.rho0*(
-    #         (uc_dot/self.lattice.cs2) + (uu_dot[:,:,jnp.newaxis]/(2*self.lattice.cs2**2))*(trace_cici-self.lattice.cs2*self.lattice.d)
-    #     ))
-    #     return f_eq
-
-
     def write_disk(self, f, nt):
         """
         store macroscopic values in array for use of outside visualisation software.
         Writing an XML of some kind for VTK to be implemented in ParaView
+        Unfinished
         """
         rho, u = self.macro_vars(f)
         # def save_vtk_timestep(u, rho, nt, output_path):
@@ -325,10 +294,12 @@ class LBM:
             # writer.SetFileName(f"{output_path}/lbm_t{timestep:04d}.vti")
             # writer.SetInputData(grid)
             # writer.Write()
-
         pass
 
     def plot(self, f, it):
+        """
+        Default plotter function, better to specify in sim class.
+        """
         #TODO Has to be a better way to visualise this data
         rho, u = self.macro_vars(f)
 

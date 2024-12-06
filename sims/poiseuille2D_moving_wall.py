@@ -15,7 +15,7 @@ class Poiseuille(BGK):
     def __str__(self):
         return "Poiseuille_moving_wall"
 
-    def apply_bc(self, f, f_prev):
+    def apply_bc(self, f, f_prev, force=None):
         def bb_tube2d(f_i):
             rho, u = self.macro_vars(f_prev)
             # bounce-back left wall
@@ -38,7 +38,7 @@ class Poiseuille(BGK):
         f = bb_tube2d(f)
         return f
 
-    def apply_pre_bc(self, f, f_prev):
+    def apply_pre_bc(self, f, f_prev, force=None):
         def inlet_outlet_bc(f_i):
             rho, u = self.macro_vars(f_prev)
             # bounce-back left wall
