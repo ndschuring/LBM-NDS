@@ -34,36 +34,36 @@ class Poiseuille(BGK):
             rho = (f_i[:,:,0]+f_i[:,:,2]+f_i[:,:,4]+2*(f_i[:,:,6]+f_i[:,:,3]+f_i[:,:,7]))/(1-u_bc[:,:,0])
             Nx = None #TODO
             Ny = (1/2)*(f_i[0, 1:-1, 4]-f_i[0, :, 2]) + (1/3)*rho[0, :]*u_bc[0, :, 1]
-            f_i = f_i.at[0, 1:-1, 1].set(f_i[0, :, 3]+self.equilibrium(rho, u_bc)[0,:,1]-self.equilibrium(rho, u_bc)[0,:,3])
-            f_i = f_i.at[0, 1:-1, 5].set(f_i[0, :, 7]+self.equilibrium(rho, u_bc)[0,:,5]-self.equilibrium(rho, u_bc)[0,:,7]+Ny)
-            f_i = f_i.at[0, 1:-1, 8].set(f_i[0, :, 6]+self.equilibrium(rho, u_bc)[0,:,8]-self.equilibrium(rho, u_bc)[0,:,6]-Ny)
+            f_i = f_i.at[0, 1:-1, 1].set(f_i[0, :, 3] + self.f_equilibrium(rho, u_bc)[0, :, 1] - self.f_equilibrium(rho, u_bc)[0, :, 3])
+            f_i = f_i.at[0, 1:-1, 5].set(f_i[0, :, 7] + self.f_equilibrium(rho, u_bc)[0, :, 5] - self.f_equilibrium(rho, u_bc)[0, :, 7] + Ny)
+            f_i = f_i.at[0, 1:-1, 8].set(f_i[0, :, 6] + self.f_equilibrium(rho, u_bc)[0, :, 8] - self.f_equilibrium(rho, u_bc)[0, :, 6] - Ny)
             return f_i
 
         def nebb_outlet(f_i):
             rho = (f_i[:,:,0]+f_i[:,:,2]+f_i[:,:,4]+2*(f_i[:,:,1]+f_i[:,:,5]+f_i[:,:,8]))/(1-u_bc[:,:,0])
             Nx =
             Ny = (1/2)*(f_i[-1, :, 4]-f_i[-1, :, 2]) + (1/3)*rho[-1, :]*u_bc[-1, :, 1]
-            f_i = f_i.at[-1, :, 3].set(f_i[-1, :, 1]+self.equilibrium(rho, u_bc)[-1,:,3]-self.equilibrium(rho, u_bc)[-1,:,1])
-            f_i = f_i.at[-1, :, 7].set(f_i[-1, :, 5]+self.equilibrium(rho, u_bc)[-1,:,7]-self.equilibrium(rho, u_bc)[-1,:,5]-Ny)
-            f_i = f_i.at[-1, :, 6].set(f_i[-1, :, 8]+self.equilibrium(rho, u_bc)[-1,:,6]-self.equilibrium(rho, u_bc)[-1,:,8]+Ny)
+            f_i = f_i.at[-1, :, 3].set(f_i[-1, :, 1] + self.f_equilibrium(rho, u_bc)[-1, :, 3] - self.f_equilibrium(rho, u_bc)[-1, :, 1])
+            f_i = f_i.at[-1, :, 7].set(f_i[-1, :, 5] + self.f_equilibrium(rho, u_bc)[-1, :, 7] - self.f_equilibrium(rho, u_bc)[-1, :, 5] - Ny)
+            f_i = f_i.at[-1, :, 6].set(f_i[-1, :, 8] + self.f_equilibrium(rho, u_bc)[-1, :, 6] - self.f_equilibrium(rho, u_bc)[-1, :, 8] + Ny)
             return f_i
 
         def nebb_top(f_i):
             rho =
             Nx = -(1/2)*(f_i[:, -1, 1]-f_i[:, -1, 3]) + (1/3)*rho[:, -1]*u_bc[:, -1, 0]
             Ny =
-            f_i = f_i.at[:, -1, 2].set(f_i[:, -1, 4]+self.equilibrium(rho, u_bc)[:, -1,2]-self.equilibrium(rho, u_bc)[:, -1,4])
-            f_i = f_i.at[:, -1, 5].set(f_i[:, -1, 7]+self.equilibrium(rho, u_bc)[:, -1,5]-self.equilibrium(rho, u_bc)[:, -1,7]+Nx)
-            f_i = f_i.at[:, -1, 6].set(f_i[:, -1, 8]+self.equilibrium(rho, u_bc)[:, -1,6]-self.equilibrium(rho, u_bc)[:, -1,8]-Nx)
+            f_i = f_i.at[:, -1, 2].set(f_i[:, -1, 4] + self.f_equilibrium(rho, u_bc)[:, -1, 2] - self.f_equilibrium(rho, u_bc)[:, -1, 4])
+            f_i = f_i.at[:, -1, 5].set(f_i[:, -1, 7] + self.f_equilibrium(rho, u_bc)[:, -1, 5] - self.f_equilibrium(rho, u_bc)[:, -1, 7] + Nx)
+            f_i = f_i.at[:, -1, 6].set(f_i[:, -1, 8] + self.f_equilibrium(rho, u_bc)[:, -1, 6] - self.f_equilibrium(rho, u_bc)[:, -1, 8] - Nx)
             return f_i
 
         def nebb_bottom(f_i):
             rho =
             Nx = -(1/2)*(f_i[:, 0, 1]-f_i[:, 0, 3]) + (1/3)*rho[:, 0]*u_bc[:, 0, 0]
             Ny =
-            f_i = f_i.at[:, 0, 4].set(f_i[:, 0, 2]+self.equilibrium(rho, u_bc)[:, 0,4]-self.equilibrium(rho, u_bc)[:, 0,2])
-            f_i = f_i.at[:, 0, 7].set(f_i[:, 0, 5]+self.equilibrium(rho, u_bc)[:, 0,7]-self.equilibrium(rho, u_bc)[:, 0,5]-Nx)
-            f_i = f_i.at[:, 0, 8].set(f_i[:, 0, 6]+self.equilibrium(rho, u_bc)[:, 0,8]-self.equilibrium(rho, u_bc)[:, 0,6]+Nx)
+            f_i = f_i.at[:, 0, 4].set(f_i[:, 0, 2] + self.f_equilibrium(rho, u_bc)[:, 0, 4] - self.f_equilibrium(rho, u_bc)[:, 0, 2])
+            f_i = f_i.at[:, 0, 7].set(f_i[:, 0, 5] + self.f_equilibrium(rho, u_bc)[:, 0, 7] - self.f_equilibrium(rho, u_bc)[:, 0, 5] - Nx)
+            f_i = f_i.at[:, 0, 8].set(f_i[:, 0, 6] + self.f_equilibrium(rho, u_bc)[:, 0, 8] - self.f_equilibrium(rho, u_bc)[:, 0, 6] + Nx)
             return f_i
 
         # def nebb_corner_correction(f_i):

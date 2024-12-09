@@ -45,13 +45,13 @@ class Poiseuille(BGK):
     def apply_pre_bc(self, f_post_col, f_pre_col, force=None):
         # Periodic pressure boundary condition
         def inlet_pressure(f_i):
-            f_i = f_i.at[0, :, :].set(self.equilibrium(self.rho_inlet, u_pre)[-2,:,:]+f_i[-2, :, :]-f_eq[-2,:,:])
+            f_i = f_i.at[0, :, :].set(self.f_equilibrium(self.rho_inlet, u_pre)[-2, :, :] + f_i[-2, :, :] - f_eq[-2, :, :])
             return f_i
         def outlet_pressure(f_i):
-            f_i = f_i.at[-1, :, :].set(self.equilibrium(self.rho_outlet, u_pre)[2, :, :] + f_i[2, :, :]-f_eq[2, :, :])
+            f_i = f_i.at[-1, :, :].set(self.f_equilibrium(self.rho_outlet, u_pre)[2, :, :] + f_i[2, :, :] - f_eq[2, :, :])
             return f_i
         rho_pre, u_pre = self.macro_vars(f_pre_col)
-        f_eq = self.equilibrium(rho_pre, u_pre)
+        f_eq = self.f_equilibrium(rho_pre, u_pre)
         f_post_col = inlet_pressure(f_post_col)
         f_post_col = outlet_pressure(f_post_col)
         return f_post_col

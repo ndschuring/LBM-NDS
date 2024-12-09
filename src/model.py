@@ -12,7 +12,7 @@ class BGK(LBM):
         BGK Collision
         """
         rho, u = self.macro_vars(f, force)
-        f_eq = self.equilibrium(rho, u)
+        f_eq = self.f_equilibrium(rho, u)
         # return (1 - 1 / self.tau) * f + (1 / self.tau) * f_eq + (1 - 1 / (2 * self.tau)) * source
         # return (1 - 1 / self.tau) * f + (1 / self.tau) * f_eq + source
         # return f - 1/self.tau*(f - f_eq) + source

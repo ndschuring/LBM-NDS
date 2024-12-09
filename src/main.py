@@ -44,6 +44,7 @@ class LBM:
         # Boolean parameters
         self.write = kwargs.get("write", False)
         self.debug = kwargs.get("debug", False)
+        self.multiphase_state = kwargs.get("multiphase_state", False)
 
     def __str__(self):
         return "undefined_sim" # Fallback name if unspecified
@@ -77,7 +78,7 @@ class LBM:
         """
         u = jnp.zeros(self.u_dimension)
         rho = self.rho0 * jnp.ones(self.rho_dimension)
-        f = self.equilibrium(rho, u)
+        f = self.f_equilibrium(rho, u)
         return f
 
     @partial(jax.jit, static_argnums=0)
@@ -109,9 +110,12 @@ class LBM:
     @partial(jit, static_argnums=0, inline=True)
     def macro_vars(self, f, force=None):
         """
-        Calculate macroscopic variables using method of moments
+        Calculate macroscopic variables of f using method of moments
         0th moment: density rho
         1st moment: momentum
+        Moments of g
+        0th moment: phi
+        1st moment: phi*u
         """
         rho = jnp.sum(f, axis=-1)
         u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
@@ -148,7 +152,6 @@ class LBM:
 
         return force_components
 
-
     def source_term(self, f, force):
         """
         Calculate the source term from the force density.
@@ -164,7 +167,6 @@ class LBM:
         term2 = jnp.einsum("abq,...b->...aq", cc_diff, u) / (self.lattice.cs2 ** 2)
         source_term = self.lattice.w*(term1 + term2)
         source_term = jnp.einsum("...ab,...a->...b", source_term, force)
-        # source_term = self.lattice.w*(c_div+jnp.einsum("abq,...b",cc_diff, u)/(self.lattice.cs2**2))*force
         return source_term
 
     def apply_pre_bc(self, f, f_prev, force=None):
@@ -190,7 +192,7 @@ class LBM:
                 return jnp.roll(f_i, (c[0], c[1], c[2]), axis=(0, 1, 2))
         return jax.vmap(stream_i, in_axes=(-1, 0), out_axes=-1)(f, self.lattice.c.T)
 
-    def equilibrium(self, rho, u):
+    def f_equilibrium(self, rho, u):
         # definitive version of equation 3.54 of LBM book. Utilizing jnp.einsum to actually understand what is going on.
         wi_rho = jnp.einsum("i,...->...i", self.lattice.w, rho)
         cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
@@ -201,67 +203,7 @@ class LBM:
         term2 = uc/self.lattice.cs2
         term3 = jnp.einsum("...ab,abq->...q",uu, cc_diff) / (2*self.lattice.cs2**2)
         f_eq = wi_rho * (term1 + term2 + term3)
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # Scheme from LBM book, linear equilibrium with incompressible model from sample code
-        # Calculate the dot product of u and c
-        uc_dot = u[:, :, 0][:, :, jnp.newaxis] * self.lattice.c[0, :] + u[:, :, 1][:, :, jnp.newaxis] * self.lattice.c[1, :]
-        # Multiply by 3 and add rho
-        f_eq = self.lattice.w * (rho[:, :, jnp.newaxis] + 3 * uc_dot)
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # using equation 3.4 of LBM book
-        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-        uu_dot = jnp.sum(jnp.square(u), axis=-1) / (2*self.lattice.cs2)
-        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (1 + (uc_dot/self.lattice.cs2) + ((uc_dot**2)/(2*self.lattice.cs2**2)) - uu_dot[:,:,jnp.newaxis])
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # using equation 3.54 of LBM book
-        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-        cc_dot = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
-        cc_diff = cc_dot - (self.lattice.cs2 * jnp.eye(self.lattice.d))
-        uu = u[..., None] * u[..., None, :]
-        term1 = 1
-        term2 = uc_dot / self.lattice.cs2
-        term3 = jnp.tensordot(uu, cc_diff, axes=([[-1, -2], [-1, -2]])) / (2 * self.lattice.cs2 ** 2)
-        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (term1 + term2 + term3)
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # AI "optimized" version of above
-        # Pre-compute common terms
-        u_squared = jnp.sum(u ** 2, axis=-1)
-
-        # Compute cu using broadcasting
-        cu = jnp.einsum('id,xy...d->xyi', self.lattice.c.T, u)
-
-        # Compute equilibrium distribution
-        f_eq = self.lattice.w[None, None, :] * rho[..., None] * (
-                1.0
-                + cu / self.lattice.cs2
-                + (cu ** 2 / (2 * self.lattice.cs2 ** 2))
-                - u_squared[..., None] / (2 * self.lattice.cs2)
-        )
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # using equation 4.42 of LBM book (for incompressible flows)
-        # Only works for gravity driven poiseuille and couette
-        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-        cc_dot = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
-        cc_diff = cc_dot - (self.lattice.cs2 * jnp.eye(self.lattice.d))
-        uu = u[..., None] * u[..., None, :]
-        term2 = uc_dot / self.lattice.cs2
-        term3 = jnp.tensordot(uu, cc_diff, axes=([[-1, -2], [-1, -2]])) / (2 * self.lattice.cs2 ** 2)
-        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] + self.lattice.w[jnp.newaxis, jnp.newaxis, :] * self.rho0_ones[:, :, jnp.newaxis] * (term2 + term3)
+        f_eq = f_eq.at[..., 0].set(rho - jnp.sum(f_eq[..., 1:], axis=-1)) #correction term to ensure mass conservation?
         return f_eq
 
     def write_disk(self, f, nt):

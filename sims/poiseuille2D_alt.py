@@ -39,13 +39,13 @@ class Poiseuille(BGK):
             f_i = f_i.at[:, 0, self.lattice.top_indices].set(f_prev[:, 0, self.lattice.bottom_indices])
             return f_i
         def inlet_pressure(f_i):
-            f_i = f_i.at[0, :, :].set(self.equilibrium(self.rho_inlet, u_pre)[-2,:,:]+f_i[-2, :, :]-f_eq[-2,:,:])
+            f_i = f_i.at[0, :, :].set(self.f_equilibrium(self.rho_inlet, u_pre)[-2, :, :] + f_i[-2, :, :] - f_eq[-2, :, :])
             return f_i
         def outlet_pressure(f_i):
-            f_i = f_i.at[-1, :, :].set(self.equilibrium(self.rho_outlet, u_pre)[2, :, :] + f_i[2, :, :]-f_eq[2, :, :])
+            f_i = f_i.at[-1, :, :].set(self.f_equilibrium(self.rho_outlet, u_pre)[2, :, :] + f_i[2, :, :] - f_eq[2, :, :])
             return f_i
         rho_pre, u_pre = self.macro_vars(f_prev)
-        f_eq = self.equilibrium(rho_pre, u_pre)
+        f_eq = self.f_equilibrium(rho_pre, u_pre)
         f = inlet_pressure(f)
         f = outlet_pressure(f)
         f = bounce_back_tube2D(f)
