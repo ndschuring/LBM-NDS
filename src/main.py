@@ -206,6 +206,11 @@ class LBM:
         f_eq = f_eq.at[..., 0].set(rho - jnp.sum(f_eq[..., 1:], axis=-1)) #correction term to ensure mass conservation?
         return f_eq
 
+    def g_equilibrium(self, phi, u):
+        # return g_eq
+        pass
+
+
     def write_disk(self, f, nt):
         """
         store macroscopic values in array for use of outside visualisation software.
