@@ -15,74 +15,54 @@ class Poiseuille(BGK):
         return "Poiseuille_NEBB"
 
     def apply_bc(self, f, f_prev, force=None):
-        rho, u = self.macro_vars(f_prev)
-        def bb_tube2d(f_i):
-            # bounce-back top wall
-            f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5])
-            f_i = f_i.at[:, -1, 4].set(f_prev[:, -1, 2])
-            f_i = f_i.at[:, -1, 8].set(f_prev[:, -1, 6])
-            # bounce-back bottom wall
-            f_i = f_i.at[:, 0, 5].set(f_prev[:, 0, 7])
-            f_i = f_i.at[:, 0, 2].set(f_prev[:, 0, 4])
-            f_i = f_i.at[:, 0, 6].set(f_prev[:, 0, 8])
-            return f_i
-        # def nebb_inlet(f_i):
-        # # WORKS
-        #     Ny = (1/2)*(f_i[0, :, 4]-f_i[0, :, 2]) + (1/3)*rho[0, :]*u_bc[0, :, 1]
-        #     f_i = f_i.at[0, :, 1].set(f_i[0, :, 3]+(2/3)*rho[0, :]*u_bc[0, :, 0])
-        #     f_i = f_i.at[0, :, 5].set(f_i[0, :, 7]+(1/6)*rho[0, :]*(u_bc[0, :, 0]+u_bc[0, :, 1])+Ny)
-        #     f_i = f_i.at[0, :, 8].set(f_i[0, :, 6]-(1/6)*rho[0, :]*(-u_bc[0, :, 0]+u_bc[0, :, 1])-Ny)
-        #     return f_i
-        # def nebb_outlet(f_i):
-        #     Ny = (1/2)*(f_i[-1, :, 4]-f_i[-1, :, 2]) + (1/3)*rho[-1, :]*u_bc[-1, :, 1]
-        #     f_i = f_i.at[-1, :, 3].set(f_i[-1, :, 1]+(2/3)*rho[-1, :]*u_bc[-1, :, 0])
-        #     f_i = f_i.at[-1, :, 7].set(f_i[-1, :, 5]+(1/6)*rho[-1, :]*(u_bc[-1, :, 0]+u_bc[-1, :, 1])+Ny)
-        #     f_i = f_i.at[-1, :, 6].set(f_i[-1, :, 8]-(1/6)*rho[-1, :]*(-u_bc[-1, :, 0]+u_bc[-1, :, 1])-Ny)
-        #     return f_i
-        def nebb_inlet(f_i):
-            # rho = (f_i[0,:,0]+f_i[0,:,2]+f_i[0,:,4]+2*(f_i[0,:,6]+f_i[0,:,3]+f_i[0,:,7]))/(1-u_bc[0,:,0])
-            # rho = (f_i[:,:,0]+f_i[:,:,2]+f_i[:,:,4]+2*(f_i[:,:,6]+f_i[:,:,3]+f_i[:,:,7]))/(1-u_bc[:,:,0])
+        def nebb_velocity_inlet(f_i):
+            rho = (f_i[:,:,0]+f_i[:,:,2]+f_i[:,:,4]+2*(f_i[:,:,6]+f_i[:,:,3]+f_i[:,:,7]))/(1-u_bc[:,:,0])
+            f_eq = self.f_equilibrium(rho, u_bc)
             Ny = (1/2)*(f_i[0, :, 4]-f_i[0, :, 2]) + (1/3)*rho[0, :]*u_bc[0, :, 1]
-            f_i = f_i.at[0, :, 1].set(f_i[0, :, 3]+self.equilibrium(rho, u_bc)[0,:,1]-self.equilibrium(rho, u_bc)[0,:,3])
-            f_i = f_i.at[0, :, 5].set(f_i[0, :, 7]+self.equilibrium(rho, u_bc)[0,:,5]-self.equilibrium(rho, u_bc)[0,:,7]+Ny)
-            f_i = f_i.at[0, :, 8].set(f_i[0, :, 6]+self.equilibrium(rho, u_bc)[0,:,8]-self.equilibrium(rho, u_bc)[0,:,6]-Ny)
+            f_i = f_i.at[0, :, 1].set(f_i[0, :, 3] + f_eq[0, :, 1] - f_eq[0, :, 3])
+            f_i = f_i.at[0, :, 5].set(f_i[0, :, 7] + f_eq[0, :, 5] - f_eq[0, :, 7] + Ny)
+            f_i = f_i.at[0, :, 8].set(f_i[0, :, 6] + f_eq[0, :, 8] - f_eq[0, :, 6] - Ny)
             return f_i
 
-        def nebb_outlet(f_i):
-            # rho = (f_i[-1,:,0]+f_i[-1,:,2]+f_i[-1,:,4]+2*(f_i[-1,:,6]+f_i[-1,:,3]+f_i[-1,:,7]))/(1-u_bc[-1,:,0])
-            # rho = (f_i[:,:,0]+f_i[:,:,2]+f_i[:,:,4]+2*(f_i[:,:,1]+f_i[:,:,5]+f_i[:,:,8]))/(1-u_bc[:,:,0])
+        def nebb_pressure_outlet(f_i):
+            rho = (f_i[:,:,0]+f_i[:,:,2]+f_i[:,:,4]+2*(f_i[:,:,1]+f_i[:,:,5]+f_i[:,:,8]))/(1-u_bc[:,:,0])
+            f_eq = self.f_equilibrium(rho, u_bc)
             Ny = (1/2)*(f_i[-1, :, 4]-f_i[-1, :, 2]) + (1/3)*rho[-1, :]*u_bc[-1, :, 1]
-            f_i = f_i.at[-1, :, 3].set(f_i[-1, :, 1]+self.equilibrium(rho, u_bc)[-1,:,3]-self.equilibrium(rho, u_bc)[-1,:,1])
-            f_i = f_i.at[-1, :, 7].set(f_i[-1, :, 5]+self.equilibrium(rho, u_bc)[-1,:,7]-self.equilibrium(rho, u_bc)[-1,:,5]-Ny)
-            f_i = f_i.at[-1, :, 6].set(f_i[-1, :, 8]+self.equilibrium(rho, u_bc)[-1,:,6]-self.equilibrium(rho, u_bc)[-1,:,8]+Ny)
+            f_i = f_i.at[-1, :, 3].set(f_i[-1, :, 1] + f_eq[-1, :, 3] - f_eq[-1, :, 1])
+            f_i = f_i.at[-1, :, 7].set(f_i[-1, :, 5] + f_eq[-1, :, 7] - f_eq[-1, :, 5] - Ny)
+            f_i = f_i.at[-1, :, 6].set(f_i[-1, :, 8] + f_eq[-1, :, 6] - f_eq[-1, :, 8] + Ny)
             return f_i
 
         def nebb_top(f_i):
+            rho =
+            f_eq = self.f_equilibrium(rho, u_bc)
             Nx = -(1/2)*(f_i[:, -1, 1]-f_i[:, -1, 3]) + (1/3)*rho[:, -1]*u_bc[:, -1, 0]
-            f_i = f_i.at[:, -1, 2].set(f_i[:, -1, 4]+self.equilibrium(rho, u_bc)[:, -1,2]-self.equilibrium(rho, u_bc)[:, -1,4])
-            f_i = f_i.at[:, -1, 5].set(f_i[:, -1, 7]+self.equilibrium(rho, u_bc)[:, -1,5]-self.equilibrium(rho, u_bc)[:, -1,7]+Nx)
-            f_i = f_i.at[:, -1, 6].set(f_i[:, -1, 8]+self.equilibrium(rho, u_bc)[:, -1,6]-self.equilibrium(rho, u_bc)[:, -1,8]-Nx)
+            f_i = f_i.at[:, -1, 2].set(f_i[:, -1, 4] + f_eq[:, -1, 2] - f_eq[:, -1, 4])
+            f_i = f_i.at[:, -1, 5].set(f_i[:, -1, 7] + f_eq[:, -1, 5] - f_eq[:, -1, 7] + Nx)
+            f_i = f_i.at[:, -1, 6].set(f_i[:, -1, 8] + f_eq[:, -1, 6] - f_eq[:, -1, 8] - Nx)
             return f_i
 
         def nebb_bottom(f_i):
+            rho =
+            f_eq = self.f_equilibrium(rho, u_bc)
             Nx = -(1/2)*(f_i[:, 0, 1]-f_i[:, 0, 3]) + (1/3)*rho[:, 0]*u_bc[:, 0, 0]
-            f_i = f_i.at[:, 0, 4].set(f_i[:, 0, 2]+self.equilibrium(rho, u_bc)[:, 0,4]-self.equilibrium(rho, u_bc)[:, 0,2])
-            f_i = f_i.at[:, 0, 7].set(f_i[:, 0, 5]+self.equilibrium(rho, u_bc)[:, 0,7]-self.equilibrium(rho, u_bc)[:, 0,5]-Nx)
-            f_i = f_i.at[:, 0, 8].set(f_i[:, 0, 6]+self.equilibrium(rho, u_bc)[:, 0,8]-self.equilibrium(rho, u_bc)[:, 0,6]+Nx)
+            f_i = f_i.at[:, 0, 4].set(f_i[:, 0, 2] + f_eq[:, 0, 4] - f_eq[:, 0, 2])
+            f_i = f_i.at[:, 0, 7].set(f_i[:, 0, 5] + f_eq[:, 0, 7] - f_eq[:, 0, 5] - Nx)
+            f_i = f_i.at[:, 0, 8].set(f_i[:, 0, 6] + f_eq[:, 0, 8] - f_eq[:, 0, 6] + Nx)
             return f_i
 
         def nebb_corner_correction(f_i):
-            f_i = f_i.at[ 0,  0, 0].set(rho[ 0,  0] - jnp.sum(f_i[ 0,  0, 1:], axis=-1))
-            f_i = f_i.at[ 0, -1, 0].set(rho[ 0, -1] - jnp.sum(f_i[ 0, -1, 1:], axis=-1))
-            f_i = f_i.at[-1,  0, 0].set(rho[-1,  0] - jnp.sum(f_i[-1,  0, 1:], axis=-1))
-            f_i = f_i.at[-1, -1, 0].set(rho[-1, -1] - jnp.sum(f_i[-1, -1, 1:], axis=-1))
+            f_i = f_i.at[ 0,  0, 0].set()
+            f_i = f_i.at[ 0, -1, 0].set()
+            f_i = f_i.at[-1,  0, 0].set()
+            f_i = f_i.at[-1, -1, 0].set()
             return f_i
-        f = bb_tube2d(f)
+
         f = nebb_inlet(f)
         f = nebb_outlet(f)
-        # f = nebb_top(f)
-        # f = nebb_bottom(f)
-        # f = nebb_corner_correction(f)
+        f = nebb_top(f)
+        f = nebb_bottom(f)
+        f = nebb_corner_correction(f)
         return f
 
     def plot(self, f, it):
