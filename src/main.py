@@ -35,7 +35,7 @@ class LBM:
         self.sim_name = str(self)
 
         self.write = kwargs.get("write", False)
-        self.debug = kwargs.get("debug", False)
+        self.debug, self.debug_it = kwargs.get("debug", (False, 0))
 
         #TODO do not include this in main LBM function, find something better
         today = datetime.datetime.now().strftime(f"{self.sim_name}-%Y-%m-%d_%H-%M-%S")
@@ -60,6 +60,8 @@ class LBM:
         """
         f = self.initialize()
         for it in range(nt):
+            if self.debug and it >= self.debug_it:
+                pass
             f, f_prev = self.update(f) #updates f
             if it % self.plot_every == 0 and self.write:
                 self.write_disk(f, nt)
