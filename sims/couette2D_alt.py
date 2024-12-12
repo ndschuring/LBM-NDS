@@ -13,7 +13,7 @@ Periodic|                                           |Periodic
     BC  |                                           |   BC
         |                                           |
         |                                           |
-        +-------------------------------------------+
+      (0,0)-----------------------------------------+
                         No slip BC
 """
 
@@ -27,56 +27,46 @@ class Couette(BGK):
 
     def apply_bc(self, f, f_prev, force=None):
         def bounce_back_couette2D(f_i, f_prev):
-            rho, u = self.macro_vars(f_i)
             # Bounce-back top wall
-            f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5] - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 4].set(f_prev[:, -1, 2] - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 8].set(f_prev[:, -1, 6] - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:, 6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[:, -1, self.lattice.bottom_indices].set(
-            #     f_prev[:, -1, self.lattice.opp_indices[self.lattice.bottom_indices]])
+            f_i = f_i.at[:, -2, 7].set(f_prev[:, -2, 5])# - 2 * self.lattice.w[5]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -2], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -2, 4].set(f_prev[:, -2, 2])# - 2 * self.lattice.w[2]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -2], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -2, 8].set(f_prev[:, -2, 6])# - 2 * self.lattice.w[6]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:, 6], u_bc[:, -2], axes=(-1, -1))/self.lattice.cs2))
             # Bounce-back bottom wall
-            f_i = f_i.at[:,  0, 6].set(f_prev[:,  0, 8])
-            f_i = f_i.at[:,  0, 2].set(f_prev[:,  0, 4])
-            f_i = f_i.at[:,  0, 5].set(f_prev[:,  0, 7])
-            # f_i = f_i.at[:, 0, self.lattice.top_indices].set(
-            #     f_prev[:, 0, self.lattice.opp_indices[self.lattice.top_indices]])
+            f_i = f_i.at[:,  1, 6].set(f_prev[:,  1, 8])
+            f_i = f_i.at[:,  1, 2].set(f_prev[:,  1, 4])
+            f_i = f_i.at[:,  1, 5].set(f_prev[:,  1, 7])
             return f_i
-        # def moving_wall_correction(f_i, rho):
-        #     # top wall
-        #     f_i = f_i.at[:, -1, self.lattice.bottom_indices].add(-self.lattice.w * rho[:,-1] * (jnp.tensordot(self.lattice.c, self.u_bc[:,-1], axes=(-1, 0)) / self.lattice.cs2))
-        #     # bottom wall
-        #     # f_i = f_i.at[:, -1, self.lattice.top_indices].set(f_i[:, -1, self.lattice.top_indices] - self.lattice.w * rho[:,-1] * (jnp.tensordot(self.lattice.c, self.u_bc[:,-1], axes=(-1, 0)) / self.lattice.cs2)))
-        #     return f_i
+        def periodic_horizontal(f_i):
+            # Manual periodic boundary conditions to
+            right_new = jnp.copy(f_i[1, 1:-1, self.lattice.left_indices])
+            left_new =jnp.copy(f_i[-2, 1:-1, self.lattice.right_indices])
+            f_i = f_i.at[1, 1:-1, self.lattice.right_indices].set(left_new)
+            f_i = f_i.at[-2, 1:-1, self.lattice.left_indices].set(right_new)
+            return f_i
         def moving_wall_correction(f_i):
+            # top wall
+            f_i = f_i.at[:, -2, 7].add( - 2 * self.lattice.w[5]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -2], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -2, 4].add( - 2 * self.lattice.w[5]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -2], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -2, 8].add( - 2 * self.lattice.w[5]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[:, -2], axes=(-1, -1))/self.lattice.cs2))
             return f_i
         f_i = bounce_back_couette2D(f, f_prev)
-        # f_i = moving_wall_correction(f_i)
-        # f_i.at[:, -1, self.lattice.bottom_indices].add(u)
+        f_i = periodic_horizontal(f_i)
+        f_i = moving_wall_correction(f_i)
         return f_i
 
     def plot(self, f, it):
         rho, u = self.macro_vars(f)
         print(u[int(self.nx / 2), :, 0].mean())
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        plt.imshow(u[:,:,0].T, cmap='viridis')
+        # plt.imshow(u[:,:,0].T, cmap='viridis')
         plt.imshow(u_magnitude.T, cmap='viridis')
+        u_masked = jnp.where(wall_mask, 0, u_magnitude)
+        plt.imshow(u_masked.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar()
-        plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
+        plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho[1:-1, 1:-1])))
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
-        # plt.plot(self.y, u[4, :, 0], label="Velocity Profile nx=4")
-        # plt.plot(self.y, u[40, :, 0], label="Velocity Profile nx=40")
-        # plt.plot(self.y, u[int(self.nx / 2),:, 0], label="Velocity Profile nx=nx/2")
-        # plt.plot(self.y, u[-40, :, 0], label="Velocity Profile nx=-40")
-        # plt.plot(self.y, u[-4, :, 0], label="Velocity Profile nx=-4")
-        # plt.plot(self.y, couette_analytical(), label="Analytical")
-        # plt.legend()
-        # plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
-        # plt.clf()
-        # plt.plot(self.y, jnp.abs(couette_analytical()-u[int(self.nx / 2),:, 0]), label="error")
-        # plt.savefig(self.sav_dir + "/fig_error_it" + str(it) + ".jpg")
-        # plt.clf()
 
 def couette_analytical():
     y = jnp.arange(1, ny + 1) - 0.5
@@ -94,10 +84,12 @@ if __name__ == "__main__":
     tau = 1
     lattice = LatticeD2Q9()
     plot_every = 100
+    # initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
-    u_top_wall = 0.05
-    u_wall = jnp.ones((nx, ny))*u_top_wall
-    u_bc = u_bc.at[:, -1, 0].set(u_wall[:, -1])
+    u_top_wall = 0.1
+    u_bc = u_bc.at[1:-1, -2, 0].set(u_top_wall)
+    wall_mask = jnp.zeros((nx, ny), dtype=bool)
+    wall_mask = wall_mask.at[0,:].set(True).at[-1,:].set(True).at[:,0].set(True).at[:,-1].set(True)
     kwargs = {
         'lattice': lattice,
         'tau': tau,
