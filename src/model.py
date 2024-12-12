@@ -13,10 +13,15 @@ class BGK(LBM):
         """
         rho, u = self.macro_vars(f, force)
         f_eq = self.equilibrium(rho, u)
+        # rho = rho.at[-2:-1, :].set(self.rho0)
         # return (1 - 1 / self.tau) * f + (1 / self.tau) * f_eq + (1 - 1 / (2 * self.tau)) * source
         # return (1 - 1 / self.tau) * f + (1 / self.tau) * f_eq + source
         # return f - 1/self.tau*(f - f_eq) + source
-        return f- 1/self.tau*(f-f_eq)+(1 - 1/(2*self.tau))*source
+        f_post_col = f - 1 / self.tau * (f - f_eq) + (1 - 1 / (2 * self.tau)) * source
+        # undo collisions at inlet and outlet region
+        # f_post_col = f_post_col.at[0, 1:-1, :].set(f[0, 1:-1, :])
+        # f_post_col = f_post_col.at[-1, 1:-1, :].set(f[-1, 1:-1, :])
+        return f_post_col
 
 class MRT(LBM):
     def __init__(self, **kwargs):
