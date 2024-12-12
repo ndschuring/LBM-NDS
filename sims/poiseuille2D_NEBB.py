@@ -6,6 +6,7 @@ import jax
 import time
 """
 2D poiseuille flow driven by non-equilibrium bounce-back at all walls, with enforced velocity at inlet and outlet.
+NEBB or Wet-node schemes deprecated!
 """
 class Poiseuille(BGK):
     def __init__(self, **kwargs):
