@@ -18,14 +18,28 @@ class Poiseuille(BGK):
     def apply_bc(self, f, f_prev, force=None):
         def bb_tube2d(f_i):
             rho, u = self.macro_vars(f_prev)
-            # bounce-back left wall
-            # f_i = f_i.at[0, :, 5].set(f_prev[0, :, 6] - 2 * self.lattice.w[6]*rho[0, :]*(jnp.tensordot(self.lattice.c[:,6], u_bc[0, :], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[0, :, 1].set(f_prev[0, :, 3] - 2 * self.lattice.w[3]*rho[0, :]*(jnp.tensordot(self.lattice.c[:,3], u_bc[0, :], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[0, :, 8].set(f_prev[0, :, 7] - 2 * self.lattice.w[7]*rho[0, :]*(jnp.tensordot(self.lattice.c[:,7], u_bc[0, :], axes=(-1, -1))/self.lattice.cs2))
-            # # # bounce-back right wall
-            # f_i = f_i.at[-1, :, 6].set(f_prev[-1, :, 5] - 2 * self.lattice.w[5]*rho[-1, :]*(jnp.tensordot(self.lattice.c[:,5], u_bc[-1, :], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[-1, :, 3].set(f_prev[-1, :, 1] - 2 * self.lattice.w[1]*rho[-1, :]*(jnp.tensordot(self.lattice.c[:,1], u_bc[-1, :], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[-1, :, 7].set(f_prev[-1, :, 8] - 2 * self.lattice.w[8]*rho[-1, :]*(jnp.tensordot(self.lattice.c[:,8], u_bc[-1, :], axes=(-1, -1))/self.lattice.cs2))
+            rho = jnp.ones_like(rho)
+            # bounce-back left wall (moving wall inlet velocity)
+            # equation (5.26)
+            f_i = f_i.at[0, :, 5].set(f_prev[0, :, 6] - 2 * self.lattice.w[6]*self.rho0_ones[0, :]*(jnp.tensordot(self.lattice.c[:,6], u_bc[0, :], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[0, :, 1].set(f_prev[0, :, 3] - 2 * self.lattice.w[3]*self.rho0_ones[0, :]*(jnp.tensordot(self.lattice.c[:,3], u_bc[0, :], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[0, :, 8].set(f_prev[0, :, 7] - 2 * self.lattice.w[7]*self.rho0_ones[0, :]*(jnp.tensordot(self.lattice.c[:,7], u_bc[0, :], axes=(-1, -1))/self.lattice.cs2))
+            # anti-bounce-back pressure right wall
+            # equation (5.53)
+            # u_outlet = u[-1, :, :] + 0.5 * (u[-1, :, :] - u[-2, :, :])
+            u_outlet = u[-1, :, :]
+            # f_i = f_i.at[-1, :, 6].set(-f_prev[-1, :, 5] + 2 * self.lattice.w[5]*self.rho0_ones[-1, :]*(1+(jnp.tensordot(self.lattice.c[:,5], u_outlet, axes=(-1, -1))**2)/(2*self.lattice.cs2**2))-(jnp.einsum("ij,ij->i",u_outlet,u_outlet))/(2*self.lattice.cs2))
+            # f_i = f_i.at[-1, :, 3].set(-f_prev[-1, :, 1] + 2 * self.lattice.w[1]*self.rho0_ones[-1, :]*(1+(jnp.tensordot(self.lattice.c[:,1], u_outlet, axes=(-1, -1))**2)/(2*self.lattice.cs2**2))-(jnp.einsum("ij,ij->i",u_outlet,u_outlet))/(2*self.lattice.cs2))
+            # f_i = f_i.at[-1, :, 7].set(-f_prev[-1, :, 8] + 2 * self.lattice.w[8]*self.rho0_ones[-1, :]*(1+(jnp.tensordot(self.lattice.c[:,8], u_outlet, axes=(-1, -1))**2)/(2*self.lattice.cs2**2))-(jnp.einsum("ij,ij->i",u_outlet,u_outlet))/(2*self.lattice.cs2))
+            f_i = f_i.at[-1, :, 6].set(-f_prev[-1, :, 5] + 2 * self.lattice.w[5] * self.rho0_ones[-1, :] * (
+                        1 + (jnp.tensordot(self.lattice.c[:, 5], u_outlet, axes=(-1, -1)) ** 2) / (
+                            2 * self.lattice.cs2 ** 2)))
+            f_i = f_i.at[-1, :, 3].set(-f_prev[-1, :, 1] + 2 * self.lattice.w[1] * self.rho0_ones[-1, :] * (
+                        1 + (jnp.tensordot(self.lattice.c[:, 1], u_outlet, axes=(-1, -1)) ** 2) / (
+                            2 * self.lattice.cs2 ** 2)))
+            f_i = f_i.at[-1, :, 7].set(-f_prev[-1, :, 8] + 2 * self.lattice.w[8] * self.rho0_ones[-1, :] * (
+                        1 + (jnp.tensordot(self.lattice.c[:, 8], u_outlet, axes=(-1, -1)) ** 2) / (
+                            2 * self.lattice.cs2 ** 2)))
             # bounce-back top wall
             f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5])
             f_i = f_i.at[:, -1, 4].set(f_prev[:, -1, 2])
@@ -37,27 +51,6 @@ class Poiseuille(BGK):
             return f_i
         f = bb_tube2d(f)
         return f
-
-    def apply_pre_bc(self, f, f_prev, force=None):
-        def inlet_outlet_bc(f_i):
-            rho, u = self.macro_vars(f_prev)
-            # bounce-back left wall
-            f_i = f_i.at[0, 1:-1, 5].set(f_prev[0, 1:-1, 6] - 2 * self.lattice.w[6]*rho[0, 1:-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[0, 1:-1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[0, 1:-1, 1].set(f_prev[0, 1:-1, 3] - 2 * self.lattice.w[3]*rho[0, 1:-1]*(jnp.tensordot(self.lattice.c[:,3], u_bc[0, 1:-1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[0, 1:-1, 8].set(f_prev[0, 1:-1, 7] - 2 * self.lattice.w[7]*rho[0, 1:-1]*(jnp.tensordot(self.lattice.c[:,7], u_bc[0, 1:-1], axes=(-1, -1))/self.lattice.cs2))
-            # bounce-back right wall
-            f_i = f_i.at[-1, 1:-1, 6].set(f_prev[-1, 1:-1, 5] - 2 * self.lattice.w[5]*rho[-1, 1:-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[-1, 1:-1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[-1, 1:-1, 3].set(f_prev[-1, 1:-1, 1] - 2 * self.lattice.w[1]*rho[-1, 1:-1]*(jnp.tensordot(self.lattice.c[:,1], u_bc[-1, 1:-1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[-1, 1:-1, 7].set(f_prev[-1, 1:-1, 8] - 2 * self.lattice.w[8]*rho[-1, 1:-1]*(jnp.tensordot(self.lattice.c[:,8], u_bc[-1, 1:-1], axes=(-1, -1))/self.lattice.cs2))
-            return f_i
-        return inlet_outlet_bc(f)
-
-    # def force_term(self, f):
-    #     force_x = jnp.zeros((self.nx, self.ny))
-    #     force_x = force_x.at[0, :].set(1)
-    #     return jnp.stack((force_x, jnp.zeros_like(force_x)), axis=-1)
-    #     # return jnp.stack((rho, rho), axis=-1)
-
 
     def plot(self, f, it):
         rho, u = self.macro_vars(f)
@@ -88,7 +81,7 @@ if __name__ == "__main__":
     nx = 180
     ny = 30
     nt = int(1e4)
-    # nt = int(1e2)
+    # nt = int(4e2)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
@@ -110,6 +103,7 @@ if __name__ == "__main__":
         'ny': ny,
         'rho0': rho0,
         'plot_every': plot_every,
+        'debug': (True, 299),
     }
     simPoiseuille = Poiseuille(**kwargs)
     simPoiseuille.run(nt)
