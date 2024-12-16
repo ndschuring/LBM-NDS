@@ -33,7 +33,7 @@ def laplacian(grid):
 
 def grad_2d(grid):
     """
-    Sascha's version, doesn't seem to work at all!
+    Sascha's version
     :param grid:
     :return:
     """
@@ -87,7 +87,7 @@ def grad_2d(grid):
 
 def laplacian_2d(grid):
     """
-    Sascha's version, doesn't seem to work at all!
+    Sascha's version
     :param grid:
     :return:
     """
