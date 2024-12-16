@@ -25,8 +25,8 @@ class LBM:
         self.rho_dimension = tuple(self.dimensions)
         self.u_dimension = tuple((*self.dimensions, self.lattice.d))
         # density for initialisation
-        self.rho0 = kwargs.get("rho0", 1) #scalar rho0
-        self.rho0_ones = jnp.ones(self.rho_dimension)*self.rho0 #matrix rho0
+        self.rho0 = kwargs.get("rho0", 1) # scalar rho0
+        self.rho0_ones = jnp.ones(self.rho_dimension)*self.rho0 # matrix rho0
         # Gravity Parameters
         self.g_set = kwargs.get("g_set", 0) # gravitational constant
         self.tilt_angle = kwargs.get("tilt_angle", 0) # angle of system if gravity
@@ -100,7 +100,7 @@ class LBM:
         """
         force_prev = self.force_term(f_prev)
         source_prev = self.source_term(f_prev, force_prev)
-        f_post_col = self.collision(f_prev, source_prev, force_prev)
+        f_post_col = self.collision(f_prev, source=source_prev, force=force_prev)
         # f_post_col = self.collision(f_prev)
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
         f_post_stream = self.stream(f_post_col)
@@ -124,7 +124,7 @@ class LBM:
             u += force/(2*rho[..., jnp.newaxis])
         return rho, u
 
-    def collision(self, f, source, force):
+    def collision(self, f,  **kwargs):
         """
         --Specified in model class--
         Applies collision operator
@@ -138,7 +138,7 @@ class LBM:
         """
         pass
 
-    def force_term(self, f):
+    def force_term(self, f, **kwargs):
         rho, u = self.macro_vars(f)
         # Gravity Force xy
         force_g = - rho * self.g_set
@@ -149,7 +149,6 @@ class LBM:
             force_components = jnp.stack((force_parr, force_perp, force_redundant), axis=-1)
         else:
             force_components = jnp.stack((force_parr, force_perp), axis=-1)
-
         return force_components
 
     def source_term(self, f, force):
@@ -157,12 +156,11 @@ class LBM:
         Calculate the source term from the force density.
         :param f: lattice populations of shape (*dim, q)
         :param force: force term/density of shape (*dim, d)
-
         :return source_term: matrix of shape (*dim, q)
         """
         rho, u = self.macro_vars(f, force)
         cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
-        cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[:,:,jnp.newaxis])
+        cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[...,jnp.newaxis])
         term1 = self.lattice.c/self.lattice.cs2
         term2 = jnp.einsum("abq,...b->...aq", cc_diff, u) / (self.lattice.cs2 ** 2)
         source_term = self.lattice.w*(term1 + term2)
@@ -192,22 +190,29 @@ class LBM:
                 return jnp.roll(f_i, (c[0], c[1], c[2]), axis=(0, 1, 2))
         return jax.vmap(stream_i, in_axes=(-1, 0), out_axes=-1)(f, self.lattice.c.T)
 
-    def f_equilibrium(self, rho, u):
+    def f_equilibrium(self, rho, u, **kwargs):
+        """
+        Calculates the equilibrium distribution of f for a single phase
+        According to equation 3.54 of the LBM book (Krüger et al.)
+        :param rho: Density, shape: (*dim)
+        :param u: Velocity, shape: (*dim, d)
+        :param kwargs: optional arguments: None
+        :return: equilibrium distribution f_eq, shape: (*dim, q)
+        """
         # definitive version of equation 3.54 of LBM book. Utilizing jnp.einsum to actually understand what is going on.
         wi_rho = jnp.einsum("i,...->...i", self.lattice.w, rho)
         cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
-        cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[:,:,jnp.newaxis])
+        cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[...,jnp.newaxis])
         uc = jnp.einsum("...j,ji->...i", u, self.lattice.c)
         uu = jnp.einsum("...a,...b->...ab", u, u)
         term1 = 1
         term2 = uc/self.lattice.cs2
         term3 = jnp.einsum("...ab,abq->...q",uu, cc_diff) / (2*self.lattice.cs2**2)
         f_eq = wi_rho * (term1 + term2 + term3)
-        f_eq = f_eq.at[..., 0].set(rho - jnp.sum(f_eq[..., 1:], axis=-1)) #correction term to ensure mass conservation?
+        # f_eq = f_eq.at[..., 0].set(rho - jnp.sum(f_eq[..., 1:], axis=-1)) #correction term to ensure mass conservation?
         return f_eq
 
-    def g_equilibrium(self, phi, u):
-        # return g_eq
+    def g_equilibrium(self, phi, u, **kwargs):
         pass
 
 
@@ -246,7 +251,7 @@ class LBM:
             # writer.Write()
         pass
 
-    def plot(self, f, it):
+    def plot(self, f, it, **kwargs):
         """
         Default plotter function, better to specify in sim class.
         """
