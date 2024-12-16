@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from src.lattice import LatticeD2Q9
 import jax.numpy as jnp
-from src.model import BGK
+from src.model import BGKMulti
 import time
 """
 Couette Flow
@@ -13,11 +13,11 @@ Periodic|                                           |Periodic
     BC  |                                           |   BC
         |                                           |
         |                                           |
-        +-------------------------------------------+
+      (0,0)-----------------------------------------+
                         No slip BC
 """
 
-class Couette(BGK):
+class Couette(BGKMulti):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.u_bc = kwargs.get('u_bc')
@@ -46,16 +46,28 @@ class Couette(BGK):
         f_i = moving_wall_correction(f_i)
         return f_i
 
-    def plot(self, f, it):
+    def plot(self, f, it, **kwargs):
+        g = kwargs.get('g')
         rho, u = self.macro_vars(f)
+        phi, _ = self.macro_vars(g)
         print(u[int(self.nx / 2), :, 0].mean())
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        plt.imshow(u[:,:,0].T, cmap='viridis')
+        # plt.imshow(u[:,:,0].T, cmap='viridis')
         plt.imshow(u_magnitude.T, cmap='viridis')
+        # u_masked = jnp.where(wall_mask, 0, u_magnitude)
+        # plt.imshow(u_masked.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar()
-        plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
+        plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho[1:-1, 1:-1])))
+        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=100)
+        plt.clf()
+        plt.imshow(phi.T, cmap='viridis')
+        # phi_masked = jnp.where(wall_mask, 0, phi)
+        # plt.imshow(phi_masked.T, cmap='viridis')
+        plt.gca().invert_yaxis()
+        plt.colorbar()
+        plt.title("it:"+str(it)+"Order parameter phi")
+        plt.savefig(self.sav_dir+"/fig_2D_phi_it"+str(it)+".jpg", dpi=100)
         plt.clf()
 
 def couette_analytical():
@@ -74,9 +86,20 @@ if __name__ == "__main__":
     tau = 1
     lattice = LatticeD2Q9()
     plot_every = 100
+    # initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
     u_top_wall = 0.1
     u_bc = u_bc.at[:, -1, 0].set(u_top_wall)
+    # wall_mask = jnp.zeros((nx, ny), dtype=bool)
+    # wall_mask = wall_mask.at[0,:].set(True).at[-1,:].set(True).at[:,0].set(True).at[:,-1].set(True)
+    phi_init = jnp.zeros((nx, ny)).at[:, :int(ny/2)].set(1)
+    phi_init = phi_init.at[:, int(ny/2):].set(-1)
+    # phi_init = phi_init.at[3, 5].set(-1)
+    # print(phi_init)
+    gamma = 1
+    param_A = param_B = -4e-5
+    kappa = 4.5*jnp.abs(param_A)
+    tau_phi = 1
     kwargs = {
         'lattice': lattice,
         'tau': tau,
@@ -85,6 +108,12 @@ if __name__ == "__main__":
         'rho0': rho0,
         'plot_every': plot_every,
         'u_bc': u_bc,
+        'gamma': gamma,
+        'param_A': param_A,
+        'param_B': param_B,
+        'kappa': kappa,
+        'tau_phi': tau_phi,
+        'phi_init': phi_init,
     }
     sim = Couette(**kwargs)
     sim.run(nt)
