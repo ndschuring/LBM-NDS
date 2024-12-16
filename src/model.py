@@ -81,7 +81,7 @@ class BGKMulti(BGK):
         return f
 
     @partial(jax.jit, static_argnums=0)
-    def update(self, f_prev, **kwargs): #TODO redefine order of operations
+    def update(self, f_prev, **kwargs):
         """
         updates discrete velocities
             1. Calculate forcing term from g
@@ -105,7 +105,7 @@ class BGKMulti(BGK):
         source_prev = self.source_term(f_prev, force_prev)
 
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev, g=g_prev)
-        g_post_col = self.g_collision(g_prev, f=f_prev)
+        g_post_col = self.g_collision(g_prev, f=f_prev) #temp f_prev
 
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
 
@@ -188,8 +188,8 @@ class BGKMulti(BGK):
     @partial(jit, static_argnums=(0,), donate_argnums=(1,))
     def g_collision(self, g, **kwargs):
         f = kwargs.get("f")
-        rho, u = self.macro_vars(f)
-        phi, _ = self.macro_vars(g) #TODO check if 1st moment returns same velocity vector
+        # rho, u = self.macro_vars(f)
+        phi, u = self.macro_vars(g) #TODO check if 1st moment returns same velocity vector
         # phi = jnp.where(phi > 1, 1, phi)
         # phi = jnp.where(phi < -1, -1, phi)
         g_eq = self.g_equilibrium(phi, u)
