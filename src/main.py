@@ -34,6 +34,7 @@ class LBM:
         self.x = jnp.arange(1, self.nx+1) - 0.5
         self.y = jnp.arange(1, self.ny+1) - 0.5
         self.plot_every = kwargs.get("plot_every", 50)
+        self.plot_from = kwargs.get("plot_from", 0)
         self.sim_name = str(self)
         # Path location for storing results
         today = datetime.datetime.now().strftime(f"{self.sim_name}-%Y-%m-%d_%H-%M-%S")
@@ -65,7 +66,7 @@ class LBM:
             f, f_prev = self.update(f) #updates f
             if it % self.plot_every == 0 and self.write:
                 self.write_disk(f, nt)
-            if it % self.plot_every == 0:
+            if it % self.plot_every == 0 and it >= self.plot_from:
                 self.plot(f, it)
         return f
 
@@ -136,7 +137,7 @@ class LBM:
         --Specified in simulation class--
         Applies boundary conditions after streaming
         """
-        pass
+        return f
 
     def force_term(self, f, **kwargs):
         rho, u = self.macro_vars(f)
