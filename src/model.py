@@ -72,11 +72,11 @@ class BGKMulti(BGK):
         """
         f, g = self.initialize()
         for it in range(nt):
-            f, g, f_prev, g_prev = self.update(f, g_prev=g)  # updates f
+            f, g, f_prev, g_prev = self.update(f, g_prev=g, it=it)  # updates f
             if it % self.plot_every == 0 and self.write:
                 self.write_disk(f, nt)
                 self.write_disk(g, nt)
-            if it % self.plot_every == 0:
+            if it % self.plot_every == 0 and it >= self.plot_from:
                 self.plot(f, it, g=g)
         return f
 
@@ -100,18 +100,23 @@ class BGKMulti(BGK):
                 apply_bc(f)
                 apply_bc(g)
         """
+        it = kwargs.get("it")
+        if it >= 945:
+            print("break")
+        # get g and forcing/sourcing terms
         g_prev = kwargs.get("g_prev")
         force_prev = self.force_term(f_prev, g=g_prev)
         source_prev = self.source_term(f_prev, force_prev)
-
+        # collision of f and g
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev, g=g_prev)
-        g_post_col = self.g_collision(g_prev, f=f_prev) #temp f_prev
-
+        g_post_col = self.g_collision(g_prev, f=f_prev, force=force_prev) #temp f_prev
+        # Optional pre-streaming boundary conditions
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
-
+        g_post_col = self.apply_pre_bc(g_post_col, g_prev)
+        # Streaming of f and g
         f_post_stream = self.stream(f_post_col)
         g_post_stream = self.stream(g_post_col)
-
+        # Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
         g_post_stream = self.apply_bc(g_post_stream, g_post_col)
         return f_post_stream, g_post_stream, f_prev, g_prev
@@ -148,7 +153,7 @@ class BGKMulti(BGK):
         """
         phi = kwargs.get("phi")
         mu = self.chemical_potential(phi)
-        # definitive version of equation 3.54 of LBM book. Utilizing jnp.einsum to actually understand what is going on.
+        # definitive version of equation 3.54 of LBM book.
         wi_rho = jnp.einsum("i,...->...i", self.lattice.w, rho)
         cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
         cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[:,:,jnp.newaxis])
@@ -172,29 +177,37 @@ class BGKMulti(BGK):
         :return: equilibrium distribution g_eq, shape: (*dim, q)
         """
         mu = self.chemical_potential(phi)
-        # definitive version of equation 3.54 of LBM book. Utilizing jnp.einsum to actually understand what is going on.
-        wi_phi = jnp.einsum("i,...->...i", self.lattice.w, phi)
+        # wi_phi = jnp.einsum("i,...->...i", self.lattice.w, phi)
         cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
         cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[..., jnp.newaxis])
         cu = jnp.einsum("ji,...j->...i", self.lattice.c, u)
         uu = jnp.einsum("...a,...b->...ab", u, u)
-        term1 = ((self.gamma*mu)/(self.lattice.cs2*phi))[..., jnp.newaxis] #<- wrong dim
-        term2 = cu / self.lattice.cs2
-        term3 = jnp.einsum("...ab,abq->...q", uu, cc_diff) / (2 * self.lattice.cs2 ** 2)
-        g_eq = wi_phi * (term1 + term2 + term3)
+        term1 = ((self.gamma*mu) / self.lattice.cs2)[..., jnp.newaxis]
+        term2 = phi[..., jnp.newaxis]*cu / self.lattice.cs2
+        term3 = phi[..., jnp.newaxis]*jnp.einsum("...ab,abq->...q", uu, cc_diff) / (2 * self.lattice.cs2 ** 2)
+        g_eq = self.lattice.w * (term1 + term2 + term3)
         g_eq = g_eq.at[..., 0].set(phi - jnp.sum(g_eq[..., 1:], axis=-1))
         return g_eq
 
     @partial(jit, static_argnums=(0,), donate_argnums=(1,))
     def g_collision(self, g, **kwargs):
+        # Have to use velocity field obtained from g, not from f!
         f = kwargs.get("f")
-        # rho, u = self.macro_vars(f)
-        phi, u = self.macro_vars(g) #TODO check if 1st moment returns same velocity vector
+        force = kwargs.get("force")
+        # rho, u = self.macro_vars(f, force)
+        phi, u = self.macro_vars(g)
+        # Limiters to prevent phi from blowing up, don't use.
         # phi = jnp.where(phi > 1, 1, phi)
         # phi = jnp.where(phi < -1, -1, phi)
         g_eq = self.g_equilibrium(phi, u)
         g_post_col = g - 1 / self.tau_phi * (g - g_eq)
         return g_post_col
+
+    # def macro_vars_g(self, g):
+    #     phi = jnp.sum(g, axis=-1)
+    #     # u = jnp.dot(g, self.lattice.c.T) / phi[..., jnp.newaxis] #velocity (divide by rho)
+    #     u = jnp.dot(g, self.lattice.c.T)
+    #     return phi, u
 
 class MRT(LBM):
     def __init__(self, **kwargs):
