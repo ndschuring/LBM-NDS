@@ -9,11 +9,21 @@ import jax.numpy as jnp
 #         return jnp.stack((jnp.gradient(grid, axis=0), jnp.gradient(grid, axis=1)), axis=-1)
 #     if d == 3:
 #         return jnp.stack((jnp.gradient(grid, axis=0), jnp.gradient(grid, axis=1), jnp.gradient(grid, axis=2)), axis=-1)
-
 def nabla(grid):
+    # using grad_2D from sacha
+    return grad_2d(grid).transpose(1, 2, 0)
+
+def nabla_(grid):
+    # using built-in methods
     return jnp.stack(jnp.gradient(grid), axis=-1)
 
-def laplacian(grid):
+def nabla__(grid):
+    # weird results
+    return jnp.stack((gradient_x(grid), gradient_y(grid)), axis=-1)
+
+
+def laplacian_(grid):
+    # low accuracy, causes problems
     d = grid.ndim
     if d == 1:
         gx = jnp.gradient(grid)
@@ -30,6 +40,56 @@ def laplacian(grid):
         gyy = jnp.gradient(gy, axis=1)
         gzz = jnp.gradient(gz, axis=2)
         return gxx+gyy+gzz
+
+def laplacian(grid):
+    # works well!
+    laplacian_ = jnp.zeros_like(grid)  # Initialize a new array with the same shape as the input grid, filled with zeros
+    NX = grid.shape[0]
+    NY = grid.shape[1]
+    grad_padded = jnp.pad(grid, 2, mode='wrap')
+    grad_ineg2_jneg2 = grad_padded[:NX, :NY]
+    grad_ineg2_jneg1 = grad_padded[:NX, 1:NY + 1]
+    grad_ineg2_j0 = grad_padded[:NX, 2:NY + 2]
+    grad_ineg2_jpos1 = grad_padded[:NX, 3:NY + 3]
+    grad_ineg2_jpos2 = grad_padded[:NX, 4:NY + 4]
+
+    grad_ineg1_jneg2 = grad_padded[1:NX + 1, :NY]
+    grad_ineg1_jneg1 = grad_padded[1:NX + 1, 1:NY + 1]
+    grad_ineg1_j0 = grad_padded[1:NX + 1, 2:NY + 2]
+    grad_ineg1_jpos1 = grad_padded[1:NX + 1, 3:NY + 3]
+    grad_ineg1_jpos2 = grad_padded[1:NX + 1, 4:NY + 4]
+
+    grad_i0_jneg2 = grad_padded[2:NX + 2, :NY]
+    grad_i0_jneg1 = grad_padded[2:NX + 2, 1:NY + 1]
+    grad_i0_j0 = grad_padded[2:NX + 2, 2:NY + 2]
+    grad_i0_jpos1 = grad_padded[2:NX + 2, 3:NY + 3]
+    grad_i0_jpos2 = grad_padded[2:NX + 2, 4:NY + 4]
+
+    grad_ipos1_jneg2 = grad_padded[3:NX + 3, :NY]
+    grad_ipos1_jneg1 = grad_padded[3:NX + 3, 1:NY + 1]
+    grad_ipos1_j0 = grad_padded[3:NX + 3, 2:NY + 2]
+    grad_ipos1_jpos1 = grad_padded[3:NX + 3, 3:NY + 3]
+    grad_ipos1_jpos2 = grad_padded[3:NX + 3, 4:NY + 4]
+
+    grad_ipos2_jneg2 = grad_padded[4:NX + 4, :NY]
+    grad_ipos2_jneg1 = grad_padded[4:NX + 4, 1:NY + 1]
+    grad_ipos2_j0 = grad_padded[4:NX + 4, 2:NY + 2]
+    grad_ipos2_jpos1 = grad_padded[4:NX + 4, 3:NY + 3]
+    grad_ipos2_jpos2 = grad_padded[4:NX + 4, 4:NY + 4]
+
+    laplacian_ = laplacian_.at[:, :].set(
+        0 * grad_ineg2_jneg2 + (-1 / 30) * grad_ineg2_jneg1 + (-1 / 60) * grad_ineg2_j0 + (
+                -1 / 30) * grad_ineg2_jpos1 + 0 * grad_ineg2_jpos2 +
+        (-1 / 30) * grad_ineg1_jneg2 + (4 / 15) * grad_ineg1_jneg1 + (13 / 15) * grad_ineg1_j0 + (
+                4 / 15) * grad_ineg1_jpos1 + (-1 / 30) * grad_ineg1_jpos2 +
+        (-1 / 60) * grad_i0_jneg2 + (13 / 15) * grad_i0_jneg1 + (-21 / 5) * grad_i0_j0 + (13 / 15) * grad_i0_jpos1 + (
+                -1 / 60) * grad_i0_jpos2 +
+        (-1 / 30) * grad_ipos1_jneg2 + (4 / 15) * grad_ipos1_jneg1 + (13 / 15) * grad_ipos1_j0 + (
+                4 / 15) * grad_ipos1_jpos1 + (-1 / 30) * grad_ipos1_jpos2 +
+        0 * grad_ipos2_jneg2 + (-1 / 30) * grad_ipos2_jneg1 + (-1 / 60) * grad_ipos2_j0 + (
+                -1 / 30) * grad_ipos2_jpos1 + 0 * grad_ipos2_jpos2)
+
+    return laplacian_
 
 def grad_2d(grid):
     """
@@ -188,7 +248,10 @@ if __name__ == '__main__':
     # print(jnp.gradient(testgrid)[0])
     # print(jnp.gradient(testgrid)[1])
     # print(10*"-")
-    # print(laplacian(testgrid))
+    print(laplacian(testgrid))
+    print(nabla(testgrid))
+    print(nabla_(testgrid))
+    print(grad_2d(testgrid))
     # print(nabla(grid3D).shape)
     # gx, gy = jnp.gradient(grid2D)
     # print(jnp.gradient(grid2D).shape)
