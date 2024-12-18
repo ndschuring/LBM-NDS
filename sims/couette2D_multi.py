@@ -57,15 +57,19 @@ class Couette(BGKMulti):
         # u_masked = jnp.where(wall_mask, 0, u_magnitude)
         # plt.imshow(u_masked.T, cmap='viridis')
         plt.gca().invert_yaxis()
-        plt.colorbar()
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho[1:-1, 1:-1])))
+        plt.colorbar(label="velocity magnitude")
+        plt.xlabel("x [lattice units]")
+        plt.ylabel("y [lattice units]")
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=100)
         plt.clf()
         plt.imshow(phi.T, cmap='viridis')
         # phi_masked = jnp.where(wall_mask, 0, phi)
         # plt.imshow(phi_masked.T, cmap='viridis')
         plt.gca().invert_yaxis()
-        plt.colorbar()
+        plt.colorbar(label="Order Parameter")
+        plt.xlabel("x [lattice units]")
+        plt.ylabel("y [lattice units]")
         plt.title("it:"+str(it)+"Order parameter phi")
         plt.savefig(self.sav_dir+"/fig_2D_phi_it"+str(it)+".jpg", dpi=100)
         plt.clf()
@@ -99,6 +103,7 @@ if __name__ == "__main__":
     gamma = 1
     param_A = param_B = -4e-5
     kappa = 4.5*jnp.abs(param_A)
+    kappa = 2.5e-2
     tau_phi = 1
     kwargs = {
         'lattice': lattice,
