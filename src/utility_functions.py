@@ -9,18 +9,13 @@ import jax.numpy as jnp
 #         return jnp.stack((jnp.gradient(grid, axis=0), jnp.gradient(grid, axis=1)), axis=-1)
 #     if d == 3:
 #         return jnp.stack((jnp.gradient(grid, axis=0), jnp.gradient(grid, axis=1), jnp.gradient(grid, axis=2)), axis=-1)
-def nabla(grid):
+def nabla_(grid):
     # using grad_2D from sacha
     return grad_2d(grid).transpose(1, 2, 0)
 
-def nabla_(grid):
+def nabla(grid):
     # using built-in methods
     return jnp.stack(jnp.gradient(grid), axis=-1)
-
-def nabla__(grid):
-    # weird results
-    return jnp.stack((gradient_x(grid), gradient_y(grid)), axis=-1)
-
 
 def laplacian_(grid):
     # low accuracy, causes problems
@@ -46,7 +41,7 @@ def laplacian(grid):
     laplacian_ = jnp.zeros_like(grid)  # Initialize a new array with the same shape as the input grid, filled with zeros
     NX = grid.shape[0]
     NY = grid.shape[1]
-    grad_padded = jnp.pad(grid, 2, mode='wrap')
+    grad_padded = jnp.pad(grid, 2, mode='edge')
     grad_ineg2_jneg2 = grad_padded[:NX, :NY]
     grad_ineg2_jneg1 = grad_padded[:NX, 1:NY + 1]
     grad_ineg2_j0 = grad_padded[:NX, 2:NY + 2]
