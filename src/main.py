@@ -132,7 +132,7 @@ class LBM:
         """
         pass
 
-    def apply_bc(self, f, f_prev, force=None):
+    def apply_bc(self, f, f_prev, force=None, **kwargs):
         """
         --Specified in simulation class--
         Applies boundary conditions after streaming
