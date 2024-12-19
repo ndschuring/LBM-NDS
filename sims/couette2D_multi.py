@@ -25,7 +25,8 @@ class Couette(BGKMulti):
     def __str__(self):
         return "Couette_Flow_multi"
 
-    def apply_bc(self, f, f_prev, force=None):
+    def apply_bc(self, f, f_prev, force=None, **kwargs):
+        g_tag = kwargs.get('g_tag', False)
         def bounce_back_couette2D(f_i, f_prev):
             # Bounce-back top wall
             f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5])# - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
@@ -42,8 +43,10 @@ class Couette(BGKMulti):
             f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
             f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[2]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
             return f_i
+
         f_i = bounce_back_couette2D(f, f_prev)
-        f_i = moving_wall_correction(f_i)
+        # if not g_tag:
+        #     f_i = moving_wall_correction(f_i)
         return f_i
 
     def plot(self, f, it, **kwargs):
@@ -63,7 +66,7 @@ class Couette(BGKMulti):
         plt.ylabel("y [lattice units]")
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=100)
         plt.clf()
-        plt.imshow(phi.T, cmap='viridis')
+        plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
         # phi_masked = jnp.where(wall_mask, 0, phi)
         # plt.imshow(phi_masked.T, cmap='viridis')
         plt.gca().invert_yaxis()
@@ -83,10 +86,10 @@ def couette_analytical():
 
 if __name__ == "__main__":
     time1 = time.time()
-    nx = 180
-    ny = 30
+    nx = 16
+    ny = 16
     nt = int(5e3)
-    # nt = int(1e2)
+    # nt = int(2e2)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
@@ -99,11 +102,11 @@ if __name__ == "__main__":
     # wall_mask = wall_mask.at[0,:].set(True).at[-1,:].set(True).at[:,0].set(True).at[:,-1].set(True)
     phi_init = jnp.zeros((nx, ny)).at[:, :int(ny/2)].set(1)
     phi_init = phi_init.at[:, int(ny/2):].set(-1)
-    phi_init = jnp.zeros_like(phi_init).at[:,:].set(1e-10)
+    # phi_init = jnp.zeros_like(phi_init).at[:,:].set(1e-10)
     # phi_init = phi_init.at[3, 5].set(-1)
     # print(phi_init)
     gamma = 1
-    param_A = param_B = -4e-5
+    param_A = param_B = -4e-4
     kappa = 4.5*jnp.abs(param_A)
     kappa = 2.5e-2
     tau_phi = 1
