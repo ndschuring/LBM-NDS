@@ -94,18 +94,18 @@ def initialize_grid(nx, ny, r):
 
 if __name__ == "__main__":
     time1 = time.time()
-    nx = 15
-    ny = 15
+    nx = 101
+    ny = 101
     # nt = int(2e2)
     # nt = int(1e3)
     nt = int(3e4)
     r = 12
-    # phi_init = initialize_grid(nx, ny, r)
+    phi_init = initialize_grid(nx, ny, r)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
-    plot_every = 1
-    plot_from = 3300
+    plot_every = 100
+    plot_from = 0
     # initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
     u_top_wall = 0.1
@@ -113,14 +113,14 @@ if __name__ == "__main__":
     # wall_mask = jnp.zeros((nx, ny), dtype=bool)
     # wall_mask = wall_mask.at[0,:].set(True).at[-1,:].set(True).at[:,0].set(True).at[:,-1].set(True)
     # Initialisation of phi
-    phi_init = jnp.zeros((nx, ny)).at[:, :int(ny/2)].set(1)
-    phi_init = phi_init.at[:, int(ny/2):].set(-1)
-    phi_init = jnp.zeros_like(phi_init)
+    # phi_init = jnp.zeros((nx, ny)).at[:, :int(ny/2)].set(1)
+    # phi_init = phi_init.at[:, int(ny/2):].set(-1)
+    # phi_init = jnp.zeros_like(phi_init)
     # phi_init = phi_init.at[3, 5].set(-1)
-    phi_init = phi_init.at[:,:].set(1)
-    phi_init = phi_init.at[int(nx/2), int(ny/2)].set(-1)
+    # phi_init = phi_init.at[:,:].set(1)
+    # phi_init = phi_init.at[int(nx/2), int(ny/2)].set(-1)
     gamma = 1
-    param_A = param_B = -4e-4
+    param_A = param_B = 4e-5
     kappa = 4.5*jnp.abs(param_A)
     # kappa = 2.5e-3
     tau_phi = 1
