@@ -41,7 +41,7 @@ def laplacian(grid):
     laplacian_ = jnp.zeros_like(grid)  # Initialize a new array with the same shape as the input grid, filled with zeros
     NX = grid.shape[0]
     NY = grid.shape[1]
-    grad_padded = jnp.pad(grid, 2, mode='edge')
+    grad_padded = jnp.pad(grid, 2, mode='edge') #-> wrap for periodic, edge for non-periodic
     grad_ineg2_jneg2 = grad_padded[:NX, :NY]
     grad_ineg2_jneg1 = grad_padded[:NX, 1:NY + 1]
     grad_ineg2_j0 = grad_padded[:NX, 2:NY + 2]
