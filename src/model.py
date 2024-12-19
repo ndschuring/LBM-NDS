@@ -101,8 +101,8 @@ class BGKMulti(BGK):
                 apply_bc(g)
         """
         it = kwargs.get("it")
-        if it >= 945:
-            print("break")
+        # if it >= 945:
+        #     print("break")
         # get g and forcing/sourcing terms
         g_prev = kwargs.get("g_prev")
         force_prev = self.force_term(f_prev, g=g_prev)
@@ -118,12 +118,13 @@ class BGKMulti(BGK):
         g_post_stream = self.stream(g_post_col)
         # Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
-        g_post_stream = self.apply_bc(g_post_stream, g_post_col)
+        g_post_stream = self.apply_bc(g_post_stream, g_post_col, g_tag=True)
         return f_post_stream, g_post_stream, f_prev, g_prev
 
     def force_term(self, f, **kwargs):
         g = kwargs.get("g")
-        phi, u = self.macro_vars(g)
+        # rho, u = self.macro_vars(f)
+        phi, _ = self.macro_vars(g)
         mu = self.chemical_potential(phi)
         force_term = mu[..., jnp.newaxis]*nabla(phi)
         return force_term
@@ -191,11 +192,10 @@ class BGKMulti(BGK):
 
     @partial(jit, static_argnums=(0,), donate_argnums=(1,))
     def g_collision(self, g, **kwargs):
-        # Have to use velocity field obtained from g, not from f!
         f = kwargs.get("f")
         force = kwargs.get("force")
-        # rho, u = self.macro_vars(f, force)
-        phi, u = self.macro_vars(g)
+        rho, u = self.macro_vars(f, force)
+        phi, _ = self.macro_vars(g)
         # Limiters to prevent phi from blowing up, don't use.
         # phi = jnp.where(phi > 1, 1, phi)
         # phi = jnp.where(phi < -1, -1, phi)
