@@ -27,6 +27,7 @@ class Couette(BGKMulti):
 
     def apply_bc(self, f, f_prev, force=None, **kwargs):
         g_tag = kwargs.get('g_tag', False)
+        rho, u = self.macro_vars(f)
         def bounce_back_couette2D(f_i, f_prev):
             # Bounce-back top wall
             f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5])# - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
@@ -39,14 +40,17 @@ class Couette(BGKMulti):
             return f_i
         def moving_wall_correction(f_i):
             # top wall
-            f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[2]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            # f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            # f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            # f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
             return f_i
 
         f_i = bounce_back_couette2D(f, f_prev)
         # if not g_tag:
-        #     f_i = moving_wall_correction(f_i)
+        f_i = moving_wall_correction(f_i)
         return f_i
 
     def plot(self, f, it, **kwargs):
@@ -88,12 +92,12 @@ if __name__ == "__main__":
     time1 = time.time()
     nx = 16
     ny = 16
-    nt = int(5e3)
+    nt = int(3e5)
     # nt = int(2e2)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
-    plot_every = 100
+    plot_every = 1000
     # initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
     u_top_wall = 0.1
