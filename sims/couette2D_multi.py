@@ -39,10 +39,7 @@ class Couette(BGKMulti):
             f_i = f_i.at[:,  0, 5].set(f_prev[:,  0, 7])
             return f_i
         def moving_wall_correction(f_i):
-            # top wall
-            # f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*self.rho0_ones[:,-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            # Top wall correction factor for moving wall
             f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
             f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
             f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
@@ -90,6 +87,7 @@ def couette_analytical():
 
 if __name__ == "__main__":
     time1 = time.time()
+    # Define mesh and constants
     nx = 16
     ny = 16
     nt = int(3e5)
@@ -98,22 +96,20 @@ if __name__ == "__main__":
     tau = 1
     lattice = LatticeD2Q9()
     plot_every = 1000
-    # initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
+    # Initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
     u_top_wall = 0.1
     u_bc = u_bc.at[:, -1, 0].set(u_top_wall)
-    # wall_mask = jnp.zeros((nx, ny), dtype=bool)
-    # wall_mask = wall_mask.at[0,:].set(True).at[-1,:].set(True).at[:,0].set(True).at[:,-1].set(True)
+    # Initialise phi_init, the initial distribution of the fluids via order parameter phi
     phi_init = jnp.zeros((nx, ny)).at[:, :int(ny/2)].set(1)
     phi_init = phi_init.at[:, int(ny/2):].set(-1)
-    # phi_init = jnp.zeros_like(phi_init).at[:,:].set(1e-10)
-    # phi_init = phi_init.at[3, 5].set(-1)
-    # print(phi_init)
+    # Multi-component-specific parameters
     gamma = 1
     param_A = param_B = -4e-4
     kappa = 4.5*jnp.abs(param_A)
     kappa = 2.5e-2
     tau_phi = 1
+    # Set kwargs
     kwargs = {
         'lattice': lattice,
         'tau': tau,
@@ -129,6 +125,7 @@ if __name__ == "__main__":
         'tau_phi': tau_phi,
         'phi_init': phi_init,
     }
+    # Create simulation and run
     sim = Couette(**kwargs)
     sim.run(nt)
     time2 = time.time()

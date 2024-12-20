@@ -83,19 +83,20 @@ class Poiseuille(BGK):
 
 if __name__ == "__main__":
     time1 = time.time()
+    # Define mesh and constants
     nx = 180
     ny = 30
     nt = int(1e4)
     rho0 = 1
     lattice = LatticeD2Q9()
     plot_every = 100
-    # tau = jnp.sqrt(3/16) + 0.5             #relaxation time
-    tau = 1
-    nu = (2 * tau - 1) / 6                    #kinematic shear velocity
-    u_max = 0.1                         #maximum velocity
-    gradP = 8 * nu * u_max / ny ** 2    #pressure gradient
+    # set pressure parameters
+    nu = (2 * tau - 1) / 6 #kinematic shear velocity
+    u_max = 0.1 #maximum velocity
+    gradP = 8 * nu * u_max / ny ** 2 #pressure gradient
     rho_outlet = rho0
     rho_inlet = 3 * (nx - 1) * gradP + rho_outlet
+    # set kwargs
     kwargs = {
         'lattice': lattice,
         'tau': tau,
@@ -108,6 +109,7 @@ if __name__ == "__main__":
         'rho_inlet': rho_inlet,
         'plot_every': plot_every,
     }
+    # Create simulation and run
     simPoiseuille = Poiseuille(**kwargs)
     simPoiseuille.run(nt)
     time2 = time.time()

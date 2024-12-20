@@ -66,14 +66,10 @@ def initialize_grid(nx, ny, r):
     """
     Initialize a grid of dimensions (nx, ny) with -1 everywhere, and set points
     within a circle of radius r at the center to 1.
-
-    Parameters:
-        nx (int): Number of rows in the grid.
-        ny (int): Number of columns in the grid.
-        r (float): Radius of the circle at the center.
-
-    Returns:
-        jnp.ndarray: A 2D array representing the initialized grid.
+    :param nx: Number of rows in the grid.
+    :param ny: Number of columns in the grid.
+    :param r: Radius of the circle at the center.
+    :return: jnp.ndarray: A 2D array representing the initialized grid.
     """
     # Create a grid of indices
     x = jnp.arange(nx)
@@ -94,10 +90,9 @@ def initialize_grid(nx, ny, r):
 
 if __name__ == "__main__":
     time1 = time.time()
-    nx = 101
-    ny = 101
-    # nt = int(2e2)
-    # nt = int(1e3)
+    # Define mesh and constants
+    nx = 180
+    ny = 40
     nt = int(3e4)
     r = 12
     phi_init = initialize_grid(nx, ny, r)
@@ -106,24 +101,28 @@ if __name__ == "__main__":
     lattice = LatticeD2Q9()
     plot_every = 100
     plot_from = 0
-    # initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
+    # Initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
     u_top_wall = 0.1
     u_bc = u_bc.at[:, -1, 0].set(u_top_wall)
-    # wall_mask = jnp.zeros((nx, ny), dtype=bool)
-    # wall_mask = wall_mask.at[0,:].set(True).at[-1,:].set(True).at[:,0].set(True).at[:,-1].set(True)
-    # Initialisation of phi
-    # phi_init = jnp.zeros((nx, ny)).at[:, :int(ny/2)].set(1)
-    # phi_init = phi_init.at[:, int(ny/2):].set(-1)
+    ### Initialisation of phi, various methods
+    # -> initialise as 2 halves of fluid:
+    phi_init = jnp.zeros((nx, ny)).at[:, :int(ny/2)].set(1)
+    phi_init = phi_init.at[:, int(ny/2):].set(-1)
+    # -> initialise as zero-matrix
     # phi_init = jnp.zeros_like(phi_init)
-    # phi_init = phi_init.at[3, 5].set(-1)
+    # -> initialise as circle
+    # phi_init = initialize_grid(nx, ny, r)
+    # -> initialise as 1 corner to other fluid (why did I make this?)
     # phi_init = phi_init.at[:,:].set(1)
     # phi_init = phi_init.at[int(nx/2), int(ny/2)].set(-1)
+    # Multi-component-specific parameters
     gamma = 1
     param_A = param_B = 4e-5
     kappa = 4.5*jnp.abs(param_A)
     # kappa = 2.5e-3
     tau_phi = 1
+    # Set kwargs
     kwargs = {
         'lattice': lattice,
         'tau': tau,
@@ -140,6 +139,7 @@ if __name__ == "__main__":
         'tau_phi': tau_phi,
         'phi_init': phi_init,
     }
+    # Create simulation and run
     sim = Couette(**kwargs)
     sim.run(nt)
     time2 = time.time()

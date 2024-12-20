@@ -48,7 +48,11 @@ class LBM:
         self.multiphase_state = kwargs.get("multiphase_state", False)
 
     def __str__(self):
-        return "undefined_sim" # Fallback name if unspecified
+        """
+        Fallback name if unspecified in simulation class
+        :return: string representation of self
+        """
+        return "undefined_sim"
 
     def run(self, nt):
         """
@@ -136,6 +140,7 @@ class LBM:
         """
         --Specified in simulation class--
         Applies boundary conditions after streaming
+        if not defined, returns post-streaming populations
         """
         return f
 
@@ -172,7 +177,7 @@ class LBM:
         """
         --Specified in simulation class--
         Applies boundary conditions before streaming
-        if not defined, returns post-collision
+        if not defined, returns post-collision populations
         """
         return f
 
@@ -214,6 +219,10 @@ class LBM:
         return f_eq
 
     def g_equilibrium(self, phi, u, **kwargs):
+        """
+        --Specified in model class--
+        Calculates the equilibrium distribution of g
+        """
         pass
 
 
@@ -254,7 +263,12 @@ class LBM:
 
     def plot(self, f, it, **kwargs):
         """
-        Default plotter function, better to specify in sim class.
+        Default plotter function, 
+        Specify bespoke plotter functions in simulation class
+        :param f: lattice populations of shape (*dim, q)
+        :param it: iteration number
+        :param kwargs: optional arguments: None
+        :return: None
         """
         #TODO Has to be a better way to visualise this data
         rho, u = self.macro_vars(f)

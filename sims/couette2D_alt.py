@@ -87,6 +87,7 @@ def couette_analytical():
 
 if __name__ == "__main__":
     time1 = time.time()
+    # Define mesh and constants
     nx = 180
     ny = 30
     nt = int(1e4)
@@ -94,9 +95,11 @@ if __name__ == "__main__":
     tau = 1
     lattice = LatticeD2Q9()
     plot_every = 100
+    # Initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
     u_top_wall = 0.1
     u_bc = u_bc.at[:, -1, 0].set(u_top_wall)
+    # Set kwargs
     kwargs = {
         'lattice': lattice,
         'tau': tau,
@@ -106,6 +109,7 @@ if __name__ == "__main__":
         'plot_every': plot_every,
         'u_bc': u_bc,
     }
+    # Create simulation and run
     sim = Couette(**kwargs)
     sim.run(nt)
     time2 = time.time()

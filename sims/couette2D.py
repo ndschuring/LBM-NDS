@@ -25,7 +25,7 @@ class Couette(BGK):
 
     def apply_bc(self, f, f_prev):
         def bounce_back_couette2D(f_i, f_prev):
-            # Bounce-back top wall
+            # Bounce-back top wall with hard-coded correction term
             u_max = 0.1
             f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5] - 1 / 6 * u_max)
             f_i = f_i.at[:, -1, 4].set(f_prev[:, -1, 2])
@@ -39,6 +39,7 @@ class Couette(BGK):
 
 if __name__ == "__main__":
     time1 = time.time()
+    # Define mesh and constants
     nx = 180
     ny = 30
     nt = int(1e4)
@@ -46,6 +47,7 @@ if __name__ == "__main__":
     tau = 1
     lattice = LatticeD2Q9()
     plot_every = 100
+    # Set kwargs
     kwargs = {
         'lattice': lattice,
         'tau': tau,
@@ -54,6 +56,7 @@ if __name__ == "__main__":
         'rho0': rho0,
         'plot_every': plot_every,
     }
+    # Create simulation and run
     sim = Couette(**kwargs)
     sim.run(nt)
     time2 = time.time()
