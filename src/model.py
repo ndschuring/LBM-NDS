@@ -208,6 +208,31 @@ class BGKMulti(BGK):
     #     # u = jnp.dot(g, self.lattice.c.T) / phi[..., jnp.newaxis] #velocity (divide by rho)
     #     u = jnp.dot(g, self.lattice.c.T)
     #     return phi, u
+    def plot(self, f, it, **kwargs):
+        g = kwargs.get('g')
+        rho, u = self.macro_vars(f)
+        phi, _ = self.macro_vars(g)
+        u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
+        # Plot velocity (magnitude or x-component of velocity vector)
+        # plt.imshow(u[:,:,0].T, cmap='viridis')
+        plt.imshow(u_magnitude.T, cmap='viridis')
+        plt.gca().invert_yaxis()
+        plt.colorbar(label="Velocity magnitude")
+        plt.xlabel("x [lattice units]")
+        plt.ylabel("y [lattice units]")
+        plt.title("it:" + str(it) + " sum_rho:" + str(jnp.sum(rho)))
+        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=150)
+        plt.clf()
+        # Plot order parameter phi
+        plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
+        plt.gca().invert_yaxis()
+        plt.colorbar(label="Order Parameter")
+        plt.xlabel("x [lattice units]")
+        plt.ylabel("y [lattice units]")
+        plt.title("it:"+str(it)+" Order parameter phi")
+        plt.savefig(self.sav_dir+"/fig_2D_phi_it"+str(it)+".jpg", dpi=150)
+        plt.clf()
+
 
 class MRT(LBM):
     def __init__(self, **kwargs):

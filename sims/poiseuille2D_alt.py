@@ -57,19 +57,23 @@ class Poiseuille(BGK):
         u_analytical = -4 * self.u_max / (self.ny ** 2) * (self.y - ybottom) * (self.y - ytop)
         return u_analytical
 
-    def plot(self, f, it):
+    def plot(self, f, it, **kwargs):
         rho, u = self.macro_vars(f)
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        plt.imshow(u[:,:,0].T, cmap='viridis')
+        # Plot velocity (magnitude or x-component of velocity vector)
+        # plt.imshow(u[:,:,0].T, cmap='viridis')
         plt.imshow(u_magnitude.T, cmap='viridis')
         plt.gca().invert_yaxis()
-        plt.colorbar()
+        plt.colorbar(label="velocity magnitude")
+        plt.xlabel("x [lattice units]")
+        plt.ylabel("y [lattice units]")
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
+        # plot 1D velocity profile, along with analytical solution and error
         plt.plot(self.y, u[int(self.nx/2),:,0], label="Poiseuille2D.py")
         plt.plot(self.y, self.analytical_solution, label="analytical solution")
-        plt.plot(self.y, self.analytical_solution-u[int(self.nx/2),:,0], label="difference")
+        plt.plot(self.y, self.analytical_solution-u[int(self.nx/2),:,0], label="error")
         plt.ylim(0, self.u_max)
         plt.legend()
         plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")

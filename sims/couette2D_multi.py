@@ -50,40 +50,6 @@ class Couette(BGKMulti):
         f_i = moving_wall_correction(f_i)
         return f_i
 
-    def plot(self, f, it, **kwargs):
-        g = kwargs.get('g')
-        rho, u = self.macro_vars(f)
-        phi, _ = self.macro_vars(g)
-        print(u[int(self.nx / 2), :, 0].mean())
-        u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        # plt.imshow(u[:,:,0].T, cmap='viridis')
-        plt.imshow(u_magnitude.T, cmap='viridis')
-        # u_masked = jnp.where(wall_mask, 0, u_magnitude)
-        # plt.imshow(u_masked.T, cmap='viridis')
-        plt.gca().invert_yaxis()
-        plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho[1:-1, 1:-1])))
-        plt.colorbar(label="velocity magnitude")
-        plt.xlabel("x [lattice units]")
-        plt.ylabel("y [lattice units]")
-        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=100)
-        plt.clf()
-        plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
-        # phi_masked = jnp.where(wall_mask, 0, phi)
-        # plt.imshow(phi_masked.T, cmap='viridis')
-        plt.gca().invert_yaxis()
-        plt.colorbar(label="Order Parameter")
-        plt.xlabel("x [lattice units]")
-        plt.ylabel("y [lattice units]")
-        plt.title("it:"+str(it)+"Order parameter phi")
-        plt.savefig(self.sav_dir+"/fig_2D_phi_it"+str(it)+".jpg", dpi=100)
-        plt.clf()
-
-def couette_analytical():
-    y = jnp.arange(1, ny + 1) - 0.5
-    ybottom = 0
-    ytop = ny
-    u_analytical = u_top_wall / ny*y
-    return u_analytical
 
 if __name__ == "__main__":
     time1 = time.time()

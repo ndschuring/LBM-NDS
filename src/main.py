@@ -270,15 +270,15 @@ class LBM:
         :param kwargs: optional arguments: None
         :return: None
         """
-        #TODO Has to be a better way to visualise this data
         rho, u = self.macro_vars(f)
-
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        # print(u_magnitude.shape)
-        plt.imshow(u[:,:,0].T, cmap='viridis')
-        # plt.imshow(u_magnitude.T, cmap='viridis')
+        # Plot velocity (magnitude or x-component of velocity vector)
+        # plt.imshow(u[:,:,0].T, cmap='viridis')
+        plt.imshow(u_magnitude.T, cmap='viridis')
         plt.gca().invert_yaxis()
-        plt.colorbar()
+        plt.colorbar(label="velocity magnitude")
+        plt.xlabel("x [lattice units]")
+        plt.ylabel("y [lattice units]")
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + f"/fig_2D_it" + str(it) + ".jpg")
+        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
         plt.clf()
