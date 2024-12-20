@@ -25,7 +25,7 @@ class Couette(BGK):
     def __str__(self):
         return "Couette_Flow_alt"
 
-    def apply_bc(self, f, f_prev, force=None, **kwargs):
+    def apply_bc(self, f, f_prev, **kwargs):
         def bounce_back_couette2D(f_i, f_prev):
             rho, u = self.macro_vars(f_i)
             # Bounce-back top wall
@@ -54,7 +54,7 @@ class Couette(BGK):
         # f_i.at[:, -1, self.lattice.bottom_indices].add(u)
         return f_i
 
-    def plot(self, f, it):
+    def plot(self, f, it, **kwargs):
         rho, u = self.macro_vars(f)
         print(u[int(self.nx / 2), :, 0].mean())
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)

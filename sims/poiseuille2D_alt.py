@@ -31,7 +31,7 @@ class Poiseuille(BGK):
         self.y = jnp.arange(1, self.ny+1) - 0.5
         self.analytical_solution = self.poiseuille_analytical()
 
-    def apply_bc(self, f, f_prev):
+    def apply_bc(self, f, f_prev, **kwargs):
         def bounce_back_tube2D(f_i):
             # Bounce-back top wall
             f_i = f_i.at[:, -1, self.lattice.bottom_indices].set(f_prev[:, -1, self.lattice.top_indices])

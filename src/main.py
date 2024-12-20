@@ -136,7 +136,7 @@ class LBM:
         """
         pass
 
-    def apply_bc(self, f, f_prev, force=None, **kwargs):
+    def apply_bc(self, f, f_prev, **kwargs):
         """
         --Specified in simulation class--
         Applies boundary conditions after streaming
@@ -173,7 +173,7 @@ class LBM:
         source_term = jnp.einsum("...ab,...a->...b", source_term, force)
         return source_term
 
-    def apply_pre_bc(self, f, f_prev, force=None):
+    def apply_pre_bc(self, f, f_prev, **kwargs):
         """
         --Specified in simulation class--
         Applies boundary conditions before streaming
@@ -226,7 +226,7 @@ class LBM:
         pass
 
 
-    def write_disk(self, f, nt):
+    def write_disk(self, f, nt, **kwargs):
         """
         store macroscopic values in array for use of outside visualisation software.
         Writing an XML of some kind for VTK to be implemented in ParaView

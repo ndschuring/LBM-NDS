@@ -62,7 +62,7 @@ class Poiseuille(BGK):
         u_analytical = -4 * self.u_max / (self.ny ** 2) * (self.y - ybottom) * (self.y - ytop)
         return u_analytical
 
-    def plot(self, f, it):
+    def plot(self, f, it, **kwargs):
         rho, u = self.macro_vars(f)
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
         plt.imshow(u[:,:,0].T, cmap='viridis')

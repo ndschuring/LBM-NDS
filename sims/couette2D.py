@@ -23,7 +23,7 @@ class Couette(BGK):
     def __str__(self):
         return "Couette_Flow"
 
-    def apply_bc(self, f, f_prev):
+    def apply_bc(self, f, f_prev, **kwargs):
         def bounce_back_couette2D(f_i, f_prev):
             # Bounce-back top wall with hard-coded correction term
             u_max = 0.1
