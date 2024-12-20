@@ -106,7 +106,6 @@ class LBM:
         force_prev = self.force_term(f_prev)
         source_prev = self.source_term(f_prev, force_prev)
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev)
-        # f_post_col = self.collision(f_prev)
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
         f_post_stream = self.stream(f_post_col)
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
@@ -124,7 +123,6 @@ class LBM:
         """
         rho = jnp.sum(f, axis=-1)
         u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
-        # u = jnp.dot(f, self.lattice.c.T)
         if force is not None:
             u += force/(2*rho[..., jnp.newaxis])
         return rho, u

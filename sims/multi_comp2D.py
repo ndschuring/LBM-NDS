@@ -39,17 +39,13 @@ def initialize_grid(nx, ny, r):
     x = jnp.arange(nx)
     y = jnp.arange(ny)
     xx, yy = jnp.meshgrid(x, y, indexing='ij')
-
     # Compute the distance from the center
     center_x, center_y = nx // 2, ny // 2
     distance_from_center = jnp.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
-
     # Initialize the grid with -1
     grid = jnp.full((nx, ny), -1, dtype=jnp.float32)
-
     # Set points within the circle to 1
     grid = jnp.where(distance_from_center <= r, 1, grid)
-
     return grid
 
 if __name__ == "__main__":
@@ -59,11 +55,10 @@ if __name__ == "__main__":
     ny = 40
     nt = int(3e4)
     r = 12
-    phi_init = initialize_grid(nx, ny, r)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
-    plot_every = 100
+    plot_every = 1000
     plot_from = 0
     # Initialise u_bc, a matrix mask specifying which velocities need to be enforced at certain coordinates
     u_bc = jnp.zeros((nx, ny, 2))
@@ -82,7 +77,7 @@ if __name__ == "__main__":
     # phi_init = phi_init.at[int(nx/2), int(ny/2)].set(-1)
     # Multi-component-specific parameters
     gamma = 1
-    param_A = param_B = 4e-5
+    param_A = param_B = -4e-5
     kappa = 4.5*jnp.abs(param_A)
     # kappa = 2.5e-3
     tau_phi = 1

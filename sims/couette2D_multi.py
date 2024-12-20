@@ -25,19 +25,18 @@ class Couette(BGKMulti):
     def __str__(self):
         return "Couette_Flow_multi"
 
-    def apply_bc(self, f, f_prev, force=None, **kwargs):
-        g_tag = kwargs.get('g_tag', False)
-        rho, u = self.macro_vars(f)
+    def apply_bc(self, f, f_prev, **kwargs):
         def bounce_back_couette2D(f_i, f_prev):
             # Bounce-back top wall
-            f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5])# - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 4].set(f_prev[:, -1, 2])# - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 8].set(f_prev[:, -1, 6])# - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:, 6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5])
+            f_i = f_i.at[:, -1, 4].set(f_prev[:, -1, 2])
+            f_i = f_i.at[:, -1, 8].set(f_prev[:, -1, 6])
             # Bounce-back bottom wall
             f_i = f_i.at[:,  0, 6].set(f_prev[:,  0, 8])
             f_i = f_i.at[:,  0, 2].set(f_prev[:,  0, 4])
             f_i = f_i.at[:,  0, 5].set(f_prev[:,  0, 7])
             return f_i
+
         def moving_wall_correction(f_i):
             # Top wall correction factor for moving wall
             f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
@@ -45,8 +44,8 @@ class Couette(BGKMulti):
             f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
             return f_i
 
+        rho, u = self.macro_vars(f)
         f_i = bounce_back_couette2D(f, f_prev)
-        # if not g_tag:
         f_i = moving_wall_correction(f_i)
         return f_i
 
@@ -57,7 +56,6 @@ if __name__ == "__main__":
     nx = 16
     ny = 16
     nt = int(3e5)
-    # nt = int(2e2)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()

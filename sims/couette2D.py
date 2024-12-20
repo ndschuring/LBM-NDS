@@ -21,7 +21,7 @@ class Couette(BGK):
         super().__init__(**kwargs)
 
     def __str__(self):
-        return "Couette_Flow"
+        return "Couette_Flow_basic"
 
     def apply_bc(self, f, f_prev, **kwargs):
         def bounce_back_couette2D(f_i, f_prev):

@@ -27,31 +27,25 @@ class Couette(BGK):
 
     def apply_bc(self, f, f_prev, **kwargs):
         def bounce_back_couette2D(f_i, f_prev):
-            rho, u = self.macro_vars(f_i)
             # Bounce-back top wall
-            f_i = f_i.at[:, -1, 7].set(f_prev[:, -1, 5] - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 4].set(f_prev[:, -1, 2] - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 8].set(f_prev[:, -1, 6] - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:, 6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            # f_i = f_i.at[:, -1, self.lattice.bottom_indices].set(
-            #     f_prev[:, -1, self.lattice.opp_indices[self.lattice.bottom_indices]])
+            f_i = f_i.at[:, -1, self.lattice.bottom_indices].set(
+                f_prev[:, -1, self.lattice.opp_indices[self.lattice.bottom_indices]])
             # Bounce-back bottom wall
-            f_i = f_i.at[:,  0, 6].set(f_prev[:,  0, 8])
-            f_i = f_i.at[:,  0, 2].set(f_prev[:,  0, 4])
-            f_i = f_i.at[:,  0, 5].set(f_prev[:,  0, 7])
-            # f_i = f_i.at[:, 0, self.lattice.top_indices].set(
-            #     f_prev[:, 0, self.lattice.opp_indices[self.lattice.top_indices]])
+            f_i = f_i.at[:, 0, self.lattice.top_indices].set(
+                f_prev[:, 0, self.lattice.opp_indices[self.lattice.top_indices]])
             return f_i
-        # def moving_wall_correction(f_i, rho):
-        #     # top wall
-        #     f_i = f_i.at[:, -1, self.lattice.bottom_indices].add(-self.lattice.w * rho[:,-1] * (jnp.tensordot(self.lattice.c, self.u_bc[:,-1], axes=(-1, 0)) / self.lattice.cs2))
-        #     # bottom wall
-        #     # f_i = f_i.at[:, -1, self.lattice.top_indices].set(f_i[:, -1, self.lattice.top_indices] - self.lattice.w * rho[:,-1] * (jnp.tensordot(self.lattice.c, self.u_bc[:,-1], axes=(-1, 0)) / self.lattice.cs2)))
-        #     return f_i
         def moving_wall_correction(f_i):
+            # top wall
+            f_i = f_i.at[:, -1, 7].add(- 2 * self.lattice.w[5] * rho[:, -1] * (
+                        jnp.tensordot(self.lattice.c[:, 5], u_bc[:, -1], axes=(-1, -1)) / self.lattice.cs2))
+            f_i = f_i.at[:, -1, 4].add(- 2 * self.lattice.w[2] * rho[:, -1] * (
+                        jnp.tensordot(self.lattice.c[:, 2], u_bc[:, -1], axes=(-1, -1)) / self.lattice.cs2))
+            f_i = f_i.at[:, -1, 8].add(- 2 * self.lattice.w[6] * rho[:, -1] * (
+                        jnp.tensordot(self.lattice.c[:, 6], u_bc[:, -1], axes=(-1, -1)) / self.lattice.cs2))
             return f_i
+        rho, u = self.macro_vars(f)
         f_i = bounce_back_couette2D(f, f_prev)
-        # f_i = moving_wall_correction(f_i)
-        # f_i.at[:, -1, self.lattice.bottom_indices].add(u)
+        f_i = moving_wall_correction(f_i)
         return f_i
 
     def plot(self, f, it, **kwargs):
@@ -79,8 +73,6 @@ class Couette(BGK):
 
 def couette_analytical():
     y = jnp.arange(1, ny + 1) - 0.5
-    ybottom = 0
-    ytop = ny
     u_analytical = u_top_wall / ny*y
     return u_analytical
 

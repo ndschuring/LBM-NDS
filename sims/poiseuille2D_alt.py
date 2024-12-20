@@ -22,8 +22,6 @@ Pressure|       ------------>                       |pressure
 class Poiseuille(BGK):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # self.u_max = kwargs.get('u_max')
-        # self.gradP = kwargs.get('gradP')
         self.u_max = kwargs.get('u_max')
         self.rho_inlet = jnp.ones((self.nx, self.ny))*kwargs.get('rho_inlet')
         self.rho_outlet = jnp.ones((self.nx, self.ny))*kwargs.get('rho_outlet')
@@ -87,6 +85,8 @@ if __name__ == "__main__":
     ny = 30
     nt = int(1e4)
     rho0 = 1
+    tau = 1
+    # tau = jnp.sqrt(3/16) + 0.5             #relaxation time
     lattice = LatticeD2Q9()
     # Define pressure parameters
     nu = (2 * tau - 1) / 6                    #kinematic shear velocity

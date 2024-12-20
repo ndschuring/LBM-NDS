@@ -92,6 +92,8 @@ if __name__ == "__main__":
     ny = 30
     nt = int(1e4)
     rho0 = 1
+    tau = 1
+    # tau = jnp.sqrt(3/16) + 0.5 #from book
     lattice = LatticeD2Q9()
     plot_every = 100
     # set pressure parameters
