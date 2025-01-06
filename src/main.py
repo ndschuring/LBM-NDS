@@ -1,13 +1,16 @@
 import jax
-# jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
+from jax import jit
 import matplotlib.pyplot as plt
 import os
 import datetime
 from functools import partial
 import vtk
 import numpy as np
-from jax import jit
+from numpy.ma.core import zeros_like
+
+
+# jax.config.update("jax_enable_x64", True)
 
 class LBM:
     def __init__(self, **kwargs):
@@ -16,15 +19,14 @@ class LBM:
         self.ny = kwargs.get("ny") #y dimension
         self.nz = kwargs.get("nz") #z dimension
         self.lattice = kwargs.get("lattice") #set lattice
-            # set dimensions based on lattice
+        # set dimensions based on lattice
         self.dimensions = [self.nx or 0, self.ny or 0, self.nz or 0]
         self.dimensions = self.dimensions[:self.lattice.d]
         self.rho_dimension = tuple(self.dimensions)
         self.u_dimension = tuple((*self.dimensions, self.lattice.d))
-
-        self.rho0 = kwargs.get("rho0", 1) #density for initialisation
-        self.rho0_ones = jnp.ones(self.rho_dimension)*self.rho0
-        # self.cs2 = kwargs.get("cs2", 1/3) #lattice speed of sound #TODO replace with lattice version of constant!
+        # density for initialisation
+        self.rho0 = kwargs.get("rho0", 1) # scalar rho0
+        self.rho0_ones = jnp.ones(self.rho_dimension)*self.rho0 # matrix rho0
         # Gravity Parameters
         self.g_set = kwargs.get("g_set", 0) # gravitational constant
         self.tilt_angle = kwargs.get("tilt_angle", 0) # angle of system if gravity
@@ -32,158 +34,155 @@ class LBM:
         self.x = jnp.arange(1, self.nx+1) - 0.5
         self.y = jnp.arange(1, self.ny+1) - 0.5
         self.plot_every = kwargs.get("plot_every", 50)
+        self.plot_from = kwargs.get("plot_from", 0)
         self.sim_name = str(self)
-
-        self.write = kwargs.get("write", False)
-        self.debug, self.debug_it = kwargs.get("debug", (False, 0))
-
-        #TODO do not include this in main LBM function, find something better
+        # Path location for storing results
         today = datetime.datetime.now().strftime(f"{self.sim_name}-%Y-%m-%d_%H-%M-%S")
         cwd = os.path.abspath(__file__)
         self.sav_dir = os.path.join(os.path.dirname(cwd), "../test", today)
         if not os.path.isdir(self.sav_dir):
             os.makedirs(self.sav_dir)
+        # Boolean parameters
+        self.write = kwargs.get("write", False)
+        self.debug = kwargs.get("debug", False)
+        self.multiphase_state = kwargs.get("multiphase_state", False)
 
     def __str__(self):
+        """
+        Fallback name if unspecified in simulation class
+        :param: None
+        :return: String representation of self
+        """
         return "undefined_sim"
 
     def run(self, nt):
         """
-        Runs the model
-        1. Initialise simulation
-            Initialise()
-        2. iterate over nt
-            update()
-        3. store or plots values
-            write_disk()
-            plot()
+        Runs the model, iterating for nt iterations.
+        Plots and writes to disk if specified.
+        :param nt: number of iterations
+        :return: final distribution function of shape (*dim, q)
         """
+        # Initialise f of simulation
         f = self.initialize()
         for it in range(nt):
-            if self.debug and it >= self.debug_it:
-                pass
             f, f_prev = self.update(f) #updates f
             if it % self.plot_every == 0 and self.write:
                 self.write_disk(f, nt)
-            if it % self.plot_every == 0:
+            if it % self.plot_every == 0 and it >= self.plot_from:
                 self.plot(f, it)
         return f
 
     def initialize(self):
         """
-        calculates initial state from equilibrium where initial macroscopic values are:
+        calculates initial state from equilibrium where the initial macroscopic values are:
             1. Velocities = 0
             2. Densities = rho0
         For entire domain
+        :param: None
+        :return: initial distribution function of shape (*dim, q)
         """
         u = jnp.zeros(self.u_dimension)
         rho = self.rho0 * jnp.ones(self.rho_dimension)
-        f = self.equilibrium(rho, u)
+        f = self.f_equilibrium(rho, u)
         return f
 
     @partial(jax.jit, static_argnums=0)
     def update(self, f_prev):
         """
-        updates discrete velocities
-            1. Calculate forcing term
-                force_term()
-            2. Calculate source term from force
-                source_term()
-            3. Collision step, apply force
-                collision()
-            4. Apply pre-streaming boundary conditions
-                apply_pre_bc()
-            5. Stream discrete velocities to neighbours
-                stream()
-            6. Apply post-streaming boundary conditions
-                apply_bc()
+        Updates discrete velocities of distribution function f.
+        -Calculates the forcing term and source term.
+        -Applies collision operator.
+        -Streams to neighbour
+        -applies boundary conditions if defined.
+        :param f_prev: distribution function f of previous iteration (*dim, q)
+        :return: f_post_stream: distribution function f of current iteration (*dim, q), f_prev
         """
+        # Calculate forcing/sourcing terms
         force_prev = self.force_term(f_prev)
         source_prev = self.source_term(f_prev, force_prev)
-        f_post_col = self.collision(f_prev, source_prev, force_prev)
-        # f_post_col = self.collision(f_prev)
+        # Collision of f according to model
+        f_post_col = self.collision(f_prev, source=source_prev, force=force_prev)
+        # Optional pre-streaming boundary conditions
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
+        # Streaming of f
         f_post_stream = self.stream(f_post_col)
+        # Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
         return f_post_stream, f_prev
 
     @partial(jit, static_argnums=0, inline=True)
     def macro_vars(self, f, force=None):
         """
-        Calculate macroscopic variables using method of moments
+        Calculate macroscopic variables of f using method of moments
         0th moment: density rho
         1st moment: momentum
+        Moments of g
+        0th moment: phi
+        :param f: distribution function f of shape (*dim, q)
+        :param force: force density of shape (*dim, d)
+        :return: macroscopic variables of f, rho of shape (*dim), u of shape (*dim, d)
         """
         rho = jnp.sum(f, axis=-1)
         u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
-        # u = jnp.dot(f, self.lattice.c.T)
         if force is not None:
             u += force/(2*rho[..., jnp.newaxis])
         return rho, u
 
-    def collision(self, f, source, force):
+    def collision(self, f,  **kwargs):
         """
         --Specified in model class--
         Applies collision operator
         """
         pass
 
-    def apply_bc(self, f, f_prev, force=None):
+    def apply_bc(self, f, f_prev, **kwargs):
         """
         --Specified in simulation class--
         Applies boundary conditions after streaming
+        if not defined, returns post-streaming populations
         """
-        pass
+        return f
 
-    def force_term(self, f):
+    def force_term(self, f, **kwargs):
+        """
+        Force term for gravity force.
+        :param f: distribution function f of shape (*dim, q)
+        :param kwargs: None
+        :return: Components of force term of shape (*dim, d)
+        """
         rho, u = self.macro_vars(f)
+        # Gravity Force xy
         force_g = - rho * self.g_set
         force_parr = - force_g * jnp.sin(self.tilt_angle)
         force_perp = force_g * jnp.cos(self.tilt_angle)
-        force_components = jnp.stack((force_parr, force_perp), axis=-1)
+        if self.lattice.d == 3:
+            force_redundant = jnp.zeros_like(force_parr)
+            force_components = jnp.stack((force_parr, force_perp, force_redundant), axis=-1)
+        else:
+            force_components = jnp.stack((force_parr, force_perp), axis=-1)
         return force_components
 
     def source_term(self, f, force):
+        """
+        Calculate the source term from the force density.
+        :param f: lattice populations of shape (*dim, q)
+        :param force: force term/density of shape (*dim, d)
+        :return source_term of shape (*dim, q)
+        """
         rho, u = self.macro_vars(f, force)
-        ux, uy = u[:,:,0], u[:,:,1]
-        # ux, uy = u[0], u[1]
-        fx, fy = force[:,:,0], force[:,:,1]
-        cx, cy = self.lattice.c[0], self.lattice.c[1]
-        source_ = jnp.zeros((self.nx, self.ny, 9))
-        source_ = source_.at[:, :, 0].set(self.lattice.w[0] * (3 * (cx[0] * fx + cy[0] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[0] * cx[0] * ux * fx + cy[0] * cx[0] * uy * fx + cx[0] * cy[
-                    0] * ux * fy + cy[0] * cy[0] * uy * fy)))
-        source_ = source_.at[:, :, 1].set(self.lattice.w[1] * (3 * (cx[1] * fx + cy[1] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[1] * cx[1] * ux * fx + cy[1] * cx[1] * uy * fx + cx[1] * cy[
-                    1] * ux * fy + cy[1] * cy[1] * uy * fy)))
-        source_ = source_.at[:, :, 2].set(self.lattice.w[2] * (3 * (cx[2] * fx + cy[2] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[2] * cx[2] * ux * fx + cy[2] * cx[2] * uy * fx + cx[2] * cy[
-                    2] * ux * fy + cy[2] * cy[2] * uy * fy)))
-        source_ = source_.at[:, :, 3].set(self.lattice.w[3] * (3 * (cx[3] * fx + cy[3] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[3] * cx[3] * ux * fx + cy[3] * cx[3] * uy * fx + cx[3] * cy[
-                    3] * ux * fy + cy[3] * cy[3] * uy * fy)))
-        source_ = source_.at[:, :, 4].set(self.lattice.w[4] * (3 * (cx[4] * fx + cy[4] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[4] * cx[4] * ux * fx + cy[4] * cx[4] * uy * fx + cx[4] * cy[
-                    4] * ux * fy + cy[4] * cy[4] * uy * fy)))
-        source_ = source_.at[:, :, 5].set(self.lattice.w[5] * (3 * (cx[5] * fx + cy[5] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[5] * cx[5] * ux * fx + cy[5] * cx[5] * uy * fx + cx[5] * cy[
-                    5] * ux * fy + cy[5] * cy[5] * uy * fy)))
-        source_ = source_.at[:, :, 6].set(self.lattice.w[6] * (3 * (cx[6] * fx + cy[6] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[6] * cx[6] * ux * fx + cy[6] * cx[6] * uy * fx + cx[6] * cy[
-                    6] * ux * fy + cy[6] * cy[6] * uy * fy)))
-        source_ = source_.at[:, :, 7].set(self.lattice.w[7] * (3 * (cx[7] * fx + cy[7] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[7] * cx[7] * ux * fx + cy[7] * cx[7] * uy * fx + cx[7] * cy[
-                    7] * ux * fy + cy[7] * cy[7] * uy * fy)))
-        source_ = source_.at[:, :, 8].set(self.lattice.w[8] * (3 * (cx[8] * fx + cy[8] * fy) - 3 * (ux * fx + uy * fy) +
-                                                    9 * (cx[8] * cx[8] * ux * fx + cy[8] * cx[8] * uy * fx + cx[8] * cy[
-                    8] * ux * fy + cy[8] * cy[8] * uy * fy)))
-        return source_
+        cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
+        cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[...,jnp.newaxis])
+        term1 = self.lattice.c/self.lattice.cs2
+        term2 = jnp.einsum("abq,...b->...aq", cc_diff, u) / (self.lattice.cs2 ** 2)
+        source_term = self.lattice.w*(term1 + term2)
+        source_term = jnp.einsum("...ab,...a->...b", source_term, force)
+        return source_term
 
-    def apply_pre_bc(self, f, f_prev, force=None):
+    def apply_pre_bc(self, f, f_prev, **kwargs):
         """
         --Specified in simulation class--
         Applies boundary conditions before streaming
-        if not defined, returns post-collision
+        if not defined, returns post-collision populations
         """
         return f
 
@@ -202,68 +201,37 @@ class LBM:
                 return jnp.roll(f_i, (c[0], c[1], c[2]), axis=(0, 1, 2))
         return jax.vmap(stream_i, in_axes=(-1, 0), out_axes=-1)(f, self.lattice.c.T)
 
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # Scheme from LBM book, linear equilibrium with incompressible model from sample code
-        # Calculate the dot product of u and c
-        uc_dot = u[:, :, 0][:, :, jnp.newaxis] * self.lattice.c[0, :] + u[:, :, 1][:, :, jnp.newaxis] * self.lattice.c[1, :]
-        # Multiply by 3 and add rho
-        f_eq = self.lattice.w * (rho[:, :, jnp.newaxis] + 3 * uc_dot)
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium(self, rho, u):
-        # using equation 3.4 of LBM book
-        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-        uu_dot = jnp.sum(jnp.square(u), axis=-1) / (2*self.lattice.cs2)
-        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (1 + (uc_dot/self.lattice.cs2) + ((uc_dot**2)/(2*self.lattice.cs2**2)) - uu_dot[:,:,jnp.newaxis])
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # using equation 3.54 of LBM book
-        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-        cc_dot = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
-        cc_diff = cc_dot - (self.lattice.cs2 * jnp.eye(self.lattice.d))
-        uu = u[..., None] * u[..., None, :]
+    def f_equilibrium(self, rho, u, **kwargs):
+        """
+        Calculates the equilibrium distribution of f for a single phase
+        According to equation 3.54 of the LBM book (Krüger et al.)
+        :param rho: Density, shape: (*dim)
+        :param u: Velocity, shape: (*dim, d)
+        :param kwargs: optional arguments: None
+        :return: equilibrium distribution f_eq of shape: (*dim, q)
+        """
+        # definitive version of equation 3.54 of LBM book. Utilizing jnp.einsum to actually understand what is going on.
+        wi_rho = jnp.einsum("i,...->...i", self.lattice.w, rho)
+        cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
+        cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[...,jnp.newaxis])
+        uc = jnp.einsum("...j,ji->...i", u, self.lattice.c)
+        uu = jnp.einsum("...a,...b->...ab", u, u)
         term1 = 1
-        term2 = uc_dot / self.lattice.cs2
-        term3 = jnp.tensordot(uu, cc_diff, axes=([[-1, -2], [-1, -2]])) / (2 * self.lattice.cs2 ** 2)
-        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] * (term1 + term2 + term3)
+        term2 = uc/self.lattice.cs2
+        term3 = jnp.einsum("...ab,abq->...q",uu, cc_diff) / (2*self.lattice.cs2**2)
+        f_eq = wi_rho * (term1 + term2 + term3)
+        # f_eq = f_eq.at[..., 0].set(rho - jnp.sum(f_eq[..., 1:], axis=-1)) #correction term to ensure mass conservation?
         return f_eq
 
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # AI "optimized" version of above
-        # Pre-compute common terms
-        u_squared = jnp.sum(u ** 2, axis=-1)
+    def g_equilibrium(self, phi, u, **kwargs):
+        """
+        --Specified in model class--
+        Calculates the equilibrium distribution of g
+        """
+        pass
 
-        # Compute cu using broadcasting
-        cu = jnp.einsum('id,xy...d->xyi', self.lattice.c.T, u)
 
-        # Compute equilibrium distribution
-        f_eq = self.lattice.w[None, None, :] * rho[..., None] * (
-                1.0
-                + cu / self.lattice.cs2
-                + (cu ** 2 / (2 * self.lattice.cs2 ** 2))
-                - u_squared[..., None] / (2 * self.lattice.cs2)
-        )
-        return f_eq
-
-    @partial(jax.jit, static_argnums=0)
-    def equilibrium_(self, rho, u):
-        # using equation 4.42 of LBM book (for incompressible flows)
-        # Only works for gravity driven poiseuille and couette
-        uc_dot = jnp.tensordot(u, self.lattice.c, axes=(-1, 0))
-        cc_dot = jnp.transpose(self.lattice.c)[:, :, None] * jnp.transpose(self.lattice.c)[:, None, :]
-        cc_diff = cc_dot - (self.lattice.cs2 * jnp.eye(self.lattice.d))
-        uu = u[..., None] * u[..., None, :]
-        term2 = uc_dot / self.lattice.cs2
-        term3 = jnp.tensordot(uu, cc_diff, axes=([[-1, -2], [-1, -2]])) / (2 * self.lattice.cs2 ** 2)
-        f_eq = self.lattice.w[jnp.newaxis, jnp.newaxis, :] * rho[:, :, jnp.newaxis] + self.lattice.w[jnp.newaxis, jnp.newaxis, :] * self.rho0_ones[:, :, jnp.newaxis] * (term2 + term3)
-        return f_eq
-
-    def write_disk(self, f, nt):
+    def write_disk(self, f, nt, **kwargs):
         """
         store macroscopic values in array for use of outside visualisation software.
         Writing an XML of some kind for VTK to be implemented in ParaView
@@ -298,19 +266,24 @@ class LBM:
             # writer.Write()
         pass
 
-    def plot(self, f, it):
+    def plot(self, f, it, **kwargs):
         """
-        Default plotter function, better to specify in sim class.
+        Default plotter function, 
+        Specify bespoke plotter functions in simulation class
+        :param f: lattice populations of shape (*dim, q)
+        :param it: iteration number
+        :param kwargs: Optional arguments: None
+        :return: None
         """
-        #TODO Has to be a better way to visualise this data
         rho, u = self.macro_vars(f)
-
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        # print(u_magnitude.shape)
-        plt.imshow(u[:,:,0].T, cmap='viridis')
-        # plt.imshow(u_magnitude.T, cmap='viridis')
+        # Plot velocity (magnitude or x-component of velocity vector)
+        # plt.imshow(u[:,:,0].T, cmap='viridis')
+        plt.imshow(u_magnitude.T, cmap='viridis')
         plt.gca().invert_yaxis()
-        plt.colorbar()
+        plt.colorbar(label="velocity magnitude")
+        plt.xlabel("x [lattice units]")
+        plt.ylabel("y [lattice units]")
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + f"/fig_2D_it" + str(it) + ".jpg")
+        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
         plt.clf()

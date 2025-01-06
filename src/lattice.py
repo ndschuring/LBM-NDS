@@ -6,7 +6,7 @@ class Lattice:
     def __init__(self, name):
         self.name = name
         self.d, self.q = map(int, re.findall(r"\d+", name))
-    # Construct the properties of the lattice
+        # Construct the properties of the lattice
         self.c = jnp.array(self.lattice_velocity())
         self.w = jnp.array(self.lattice_weight())
         self.opp_indices = jnp.array(self.opposite_indices())
