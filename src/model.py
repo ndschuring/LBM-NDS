@@ -83,33 +83,24 @@ class BGKMulti(BGK):
     @partial(jax.jit, static_argnums=0)
     def update(self, f_prev, **kwargs):
         """
-        updates discrete velocities
-            1. Calculate forcing term from g
-                force_term()
-            2. Calculate source term from force
-                source_term()
-            3. Collision step, apply force to f
-                collision()
-                g_collision()
-            4. Apply pre-streaming boundary conditions (if applicable)
-                apply_pre_bc()
-            5. Stream discrete velocities to neighbours for both f and g
-                stream(f)
-                stream(g)
-            6. Apply post-streaming boundary conditions to both f and g
-                apply_bc(f)
-                apply_bc(g)
+        Updates distribution functions f and g.
+        -Calculates the forcing term and source term.
+        -Applies collision operator to f and g.
+        -Streams f and g to neighbours
+        -applies boundary conditions if defined.
+        :param f_prev: distribution function f of previous iteration (*dim, q)
+        :return: f_post_stream: distribution function f of current iteration (*dim, q), f_prev
         """
-        it = kwargs.get("it")
+        # it = kwargs.get("it")
         # if it >= 945:
         #     print("break")
         # get g and forcing/sourcing terms
         g_prev = kwargs.get("g_prev")
         force_prev = self.force_term(f_prev, g=g_prev)
         source_prev = self.source_term(f_prev, force_prev)
-        # collision of f and g
+        # collision of f and g according to model
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev, g=g_prev)
-        g_post_col = self.g_collision(g_prev, f=f_prev, force=force_prev) #temp f_prev
+        g_post_col = self.g_collision(g_prev, f=f_prev, force=force_prev)
         # Optional pre-streaming boundary conditions
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
         g_post_col = self.apply_pre_bc(g_post_col, g_prev)
@@ -118,12 +109,17 @@ class BGKMulti(BGK):
         g_post_stream = self.stream(g_post_col)
         # Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
-        g_post_stream = self.apply_bc(g_post_stream, g_post_col, g_tag=True)
+        g_post_stream = self.apply_bc(g_post_stream, g_post_col)
         return f_post_stream, g_post_stream, f_prev, g_prev
 
     def force_term(self, f, **kwargs):
+        """
+        Calculates the forcing term from the concentration gradient
+        :param f:
+        :param kwargs:
+        :return:
+        """
         g = kwargs.get("g")
-        # rho, u = self.macro_vars(f)
         phi, _ = self.macro_vars(g)
         mu = self.chemical_potential(phi)
         force_term = mu[..., jnp.newaxis]*nabla(phi)
@@ -178,7 +174,6 @@ class BGKMulti(BGK):
         :return: equilibrium distribution g_eq, shape: (*dim, q)
         """
         mu = self.chemical_potential(phi)
-        # wi_phi = jnp.einsum("i,...->...i", self.lattice.w, phi)
         cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
         cc_diff = cc - (self.lattice.cs2 * jnp.eye(self.lattice.d)[..., jnp.newaxis])
         cu = jnp.einsum("ji,...j->...i", self.lattice.c, u)
@@ -196,18 +191,10 @@ class BGKMulti(BGK):
         force = kwargs.get("force")
         rho, u = self.macro_vars(f, force)
         phi, _ = self.macro_vars(g)
-        # Limiters to prevent phi from blowing up, don't use.
-        # phi = jnp.where(phi > 1, 1, phi)
-        # phi = jnp.where(phi < -1, -1, phi)
         g_eq = self.g_equilibrium(phi, u)
         g_post_col = g - 1 / self.tau_phi * (g - g_eq)
         return g_post_col
 
-    # def macro_vars_g(self, g):
-    #     phi = jnp.sum(g, axis=-1)
-    #     # u = jnp.dot(g, self.lattice.c.T) / phi[..., jnp.newaxis] #velocity (divide by rho)
-    #     u = jnp.dot(g, self.lattice.c.T)
-    #     return phi, u
     def plot(self, f, it, **kwargs):
         g = kwargs.get('g')
         rho, u = self.macro_vars(f)

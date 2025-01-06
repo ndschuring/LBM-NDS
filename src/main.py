@@ -50,21 +50,19 @@ class LBM:
     def __str__(self):
         """
         Fallback name if unspecified in simulation class
-        :return: string representation of self
+        :param: None
+        :return: String representation of self
         """
         return "undefined_sim"
 
     def run(self, nt):
         """
-        Runs the model
-        1. Initialise simulation
-            Initialise()
-        2. iterate over nt
-            update()
-        3. store or plots values
-            write_disk()
-            plot()
+        Runs the model, iterating for nt iterations.
+        Plots and writes to disk if specified.
+        :param nt: number of iterations
+        :return: final distribution function of shape (*dim, q)
         """
+        # Initialise f of simulation
         f = self.initialize()
         for it in range(nt):
             f, f_prev = self.update(f) #updates f
@@ -76,10 +74,12 @@ class LBM:
 
     def initialize(self):
         """
-        calculates initial state from equilibrium where initial macroscopic values are:
+        calculates initial state from equilibrium where the initial macroscopic values are:
             1. Velocities = 0
             2. Densities = rho0
         For entire domain
+        :param: None
+        :return: initial distribution function of shape (*dim, q)
         """
         u = jnp.zeros(self.u_dimension)
         rho = self.rho0 * jnp.ones(self.rho_dimension)
@@ -89,25 +89,24 @@ class LBM:
     @partial(jax.jit, static_argnums=0)
     def update(self, f_prev):
         """
-        updates discrete velocities
-            1. Calculate forcing term
-                force_term()
-            2. Calculate source term from force
-                source_term()
-            3. Collision step, apply force
-                collision()
-            4. Apply pre-streaming boundary conditions
-                apply_pre_bc()
-            5. Stream discrete velocities to neighbours
-                stream()
-            6. Apply post-streaming boundary conditions
-                apply_bc()
+        Updates discrete velocities of distribution function f.
+        -Calculates the forcing term and source term.
+        -Applies collision operator.
+        -Streams to neighbour
+        -applies boundary conditions if defined.
+        :param f_prev: distribution function f of previous iteration (*dim, q)
+        :return: f_post_stream: distribution function f of current iteration (*dim, q), f_prev
         """
+        # Calculate forcing/sourcing terms
         force_prev = self.force_term(f_prev)
         source_prev = self.source_term(f_prev, force_prev)
+        # Collision of f according to model
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev)
+        # Optional pre-streaming boundary conditions
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
+        # Streaming of f
         f_post_stream = self.stream(f_post_col)
+        # Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
         return f_post_stream, f_prev
 
@@ -119,7 +118,9 @@ class LBM:
         1st moment: momentum
         Moments of g
         0th moment: phi
-        1st moment: phi*u
+        :param f: distribution function f of shape (*dim, q)
+        :param force: force density of shape (*dim, d)
+        :return: macroscopic variables of f, rho of shape (*dim), u of shape (*dim, d)
         """
         rho = jnp.sum(f, axis=-1)
         u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
@@ -143,6 +144,12 @@ class LBM:
         return f
 
     def force_term(self, f, **kwargs):
+        """
+        Force term for gravity force.
+        :param f: distribution function f of shape (*dim, q)
+        :param kwargs: None
+        :return: Components of force term of shape (*dim, d)
+        """
         rho, u = self.macro_vars(f)
         # Gravity Force xy
         force_g = - rho * self.g_set
@@ -160,7 +167,7 @@ class LBM:
         Calculate the source term from the force density.
         :param f: lattice populations of shape (*dim, q)
         :param force: force term/density of shape (*dim, d)
-        :return source_term: matrix of shape (*dim, q)
+        :return source_term of shape (*dim, q)
         """
         rho, u = self.macro_vars(f, force)
         cc = jnp.einsum("iq,jq->ijq", self.lattice.c, self.lattice.c)
@@ -201,7 +208,7 @@ class LBM:
         :param rho: Density, shape: (*dim)
         :param u: Velocity, shape: (*dim, d)
         :param kwargs: optional arguments: None
-        :return: equilibrium distribution f_eq, shape: (*dim, q)
+        :return: equilibrium distribution f_eq of shape: (*dim, q)
         """
         # definitive version of equation 3.54 of LBM book. Utilizing jnp.einsum to actually understand what is going on.
         wi_rho = jnp.einsum("i,...->...i", self.lattice.w, rho)
@@ -265,7 +272,7 @@ class LBM:
         Specify bespoke plotter functions in simulation class
         :param f: lattice populations of shape (*dim, q)
         :param it: iteration number
-        :param kwargs: optional arguments: None
+        :param kwargs: Optional arguments: None
         :return: None
         """
         rho, u = self.macro_vars(f)
