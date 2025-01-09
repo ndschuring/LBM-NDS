@@ -1,40 +1,9 @@
 import jax
 import jax.numpy as jnp
 
-# def nabla_test(grid):
-#     d = grid.ndim
-#     if d == 1:
-#         return jnp.gradient(grid, axis=0)
-#     if d == 2:
-#         return jnp.stack((jnp.gradient(grid, axis=0), jnp.gradient(grid, axis=1)), axis=-1)
-#     if d == 3:
-#         return jnp.stack((jnp.gradient(grid, axis=0), jnp.gradient(grid, axis=1), jnp.gradient(grid, axis=2)), axis=-1)
-def nabla_(grid):
-    # using grad_2D from sacha
-    return grad_2d(grid).transpose(1, 2, 0)
-
 def nabla(grid):
     # using built-in methods
     return jnp.stack(jnp.gradient(grid), axis=-1)
-
-def laplacian_(grid):
-    # low accuracy, causes problems
-    d = grid.ndim
-    if d == 1:
-        gx = jnp.gradient(grid)
-        gxx = jnp.gradient(gx, axis=0)
-        return gxx
-    if d == 2:
-        gx, gy = jnp.gradient(grid)
-        gxx = jnp.gradient(gx, axis=0)
-        gyy = jnp.gradient(gy, axis=1)
-        return gxx+gyy
-    if d == 3:
-        gx, gy, gz = jnp.gradient(grid)
-        gxx = jnp.gradient(gx, axis=0)
-        gyy = jnp.gradient(gy, axis=1)
-        gzz = jnp.gradient(gz, axis=2)
-        return gxx+gyy+gzz
 
 def laplacian(grid):
     # works well!
@@ -86,9 +55,65 @@ def laplacian(grid):
 
     return laplacian_
 
+def mask_from_image(image):
+    """
+    Initialize a boolean mask from a greyscale image.
+    black pixel -> wall
+    :param image: numpy.ndarray or PIL.Image
+    :return: JAX boolean array
+    """
+    if type(image) is None:
+        raise ValueError("Image is NoneType")
+    collision_mask = jnp.array(image==0).T[:, ::-1]
+    return collision_mask
+
+def initialize_circle(nx, ny, r):
+    """
+    Initialize a boolean grid of dimensions (nx, ny) with False everywhere, and set points
+    within a circle of radius r at the center to True.
+    :param nx: Number of rows in the grid.
+    :param ny: Number of columns in the grid.
+    :param r: Radius of the circle at the center.
+    :return: jnp.ndarray: A 2D boolean array representing the initialized grid.
+    """
+    # Create a grid of indices
+    x = jnp.arange(nx)
+    y = jnp.arange(ny)
+    xx, yy = jnp.meshgrid(x, y, indexing='ij')
+    # Compute the distance from the center
+    center_x, center_y = nx // 2, ny // 2
+    distance_from_center = jnp.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
+    # Create a boolean grid where True is inside the circle and False is outside
+    grid = distance_from_center <= r
+    return grid, nx, ny
+
+def nabla_(grid):
+    # using grad_2D from sacha, unused
+    return grad_2d(grid).transpose(1, 2, 0)
+
+def laplacian_(grid):
+    # low accuracy, causes problems, unused
+    d = grid.ndim
+    if d == 1:
+        gx = jnp.gradient(grid)
+        gxx = jnp.gradient(gx, axis=0)
+        return gxx
+    if d == 2:
+        gx, gy = jnp.gradient(grid)
+        gxx = jnp.gradient(gx, axis=0)
+        gyy = jnp.gradient(gy, axis=1)
+        return gxx+gyy
+    if d == 3:
+        gx, gy, gz = jnp.gradient(grid)
+        gxx = jnp.gradient(gx, axis=0)
+        gyy = jnp.gradient(gy, axis=1)
+        gzz = jnp.gradient(gz, axis=2)
+        return gxx+gyy+gzz
+
 def grad_2d(grid):
     """
     Sascha's version
+    unused
     :param grid:
     :return:
     """
@@ -143,6 +168,7 @@ def grad_2d(grid):
 def laplacian_2d(grid):
     """
     Sascha's version
+    unused
     :param grid:
     :return:
     """
@@ -243,10 +269,10 @@ if __name__ == '__main__':
     # print(jnp.gradient(testgrid)[0])
     # print(jnp.gradient(testgrid)[1])
     # print(10*"-")
-    print(laplacian(testgrid))
-    print(nabla(testgrid))
-    print(nabla_(testgrid))
-    print(grad_2d(testgrid))
+    # print(laplacian(testgrid))
+    # print(nabla(testgrid))
+    # print(nabla_(testgrid))
+    # print(grad_2d(testgrid))
     # print(nabla(grid3D).shape)
     # gx, gy = jnp.gradient(grid2D)
     # print(jnp.gradient(grid2D).shape)
