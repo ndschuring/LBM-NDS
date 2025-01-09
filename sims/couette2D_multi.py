@@ -9,9 +9,9 @@ Couette Flow
                 moving Wall BC (Krüger et al.)
         +-------------------------------------------+
         |                  ------>                  |
-Periodic|                                           |Periodic
-    BC  |                                           |   BC
-        |                                           |
+Periodic|                 phase 1                   |Periodic
+    BC  +- - - - - - - - - - - - - - - - - - - - - -+   BC
+        |                 phase 2                   |
         |                                           |
       (0,0)-----------------------------------------+
                         No slip BC

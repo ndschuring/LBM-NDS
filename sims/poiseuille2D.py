@@ -4,7 +4,7 @@ from src.model import BGK
 import jax.numpy as jnp
 import time
 """
-Poiseuille Flow
+Poiseuille Flow driven by periodic pressure BC, applied pre-streaming.
 
                         No slip BC
         +-------------------------------------------+
@@ -13,8 +13,10 @@ Periodic|                                           |Periodic
 Pressure|       ------------>                       |pressure
    BC   |                                           |   BC
         |                                           |
-        +-------------------------------------------+
+      (0,0)-----------------------------------------+
                         No slip BC
+
+Periodic pressure BC from Krüger et al.
 """
 
 

@@ -4,17 +4,18 @@ import jax.numpy as jnp
 from src.model import BGKMulti
 import time
 """
-Couette Flow
-                Generalised
-                moving Wall BC (Krüger et al.)
-        +-------------------------------------------+
-        |                  ------>                  |
-Periodic|                                           |Periodic
-    BC  |                                           |   BC
-        |                                           |
-        |                                           |
-      (0,0)-----------------------------------------+
-                        No slip BC
+Tester file for the multi-component system.
+Two phases can be initialised in various ways in a static volume
+
+            Periodic BC
+        +---------------------+
+        |                     |
+Periodic|    Two phases       |Periodic
+    BC  |    initialised in   |   BC
+        |    various ways     |
+        |                     |
+      (0,0)-------------------+
+            Periodic BC
 """
 
 class Couette(BGKMulti):
@@ -24,7 +25,6 @@ class Couette(BGKMulti):
 
     def __str__(self):
         return "Multi-component_test"
-
 
 def initialize_grid(nx, ny, r):
     """

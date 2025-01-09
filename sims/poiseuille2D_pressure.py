@@ -6,7 +6,17 @@ import jax
 import time
 
 """
-2D poiseuille flow driven by moving wall inlet/outlet boundary conditions
+2D poiseuille flow driven by anti-bounce-back inlet/outlet boundary conditions.
+
+                                        No-Slip BC
+                       +-------------------------------------------+
+                       |                                           |
+Pressure dirichlet     |                                           |        Pressure dirichlet BC (anti-bounce-back)
+      BC        -----> |                                           | -----> Neumann zero-gradient BC
+(anti-bounce-back)     |                                           | 
+                       |                                           |
+                     (0,0)-----------------------------------------+
+                                        No-Slip BC
 """
 class Poiseuille(BGK):
     def __init__(self, **kwargs):

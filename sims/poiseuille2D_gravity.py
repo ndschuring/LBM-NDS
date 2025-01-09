@@ -4,8 +4,24 @@ from src.model import BGK
 import jax.numpy as jnp
 import time
 """
-2D poiseuille flow driven by gravity-like body force.
+2D poiseuille flow driven by a gravity-like body force.
 Vertical tube domain, no tilt.
+
+             Periodic BC
+        +--------------------+
+        |                    |
+        |                    |
+        |                    |
+        |         ||         |
+No-slip |         ||         | No-slip
+  BC    |         ||         |   BC
+        |         ||         |
+        |         \/         |
+        |                    |
+        |                    |
+        |                    |
+      (0,0)------------------+
+             Periodic BC
 """
 class Poiseuille(BGK):
     def __init__(self, **kwargs):
