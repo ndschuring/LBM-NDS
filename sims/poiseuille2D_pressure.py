@@ -13,7 +13,7 @@ class Poiseuille(BGK):
         super().__init__(**kwargs)
 
     def __str__(self):
-        return "Poiseuille_moving_wall"
+        return "Poiseuille_pressure"
 
     def apply_bc(self, f, f_prev, **kwargs):
         def bounce_back_tube(f_i, f_prev):
@@ -55,38 +55,15 @@ class Poiseuille(BGK):
             f_i = f_i.at[-1, :, 3].set(f_prev[-2, :, 3])
             f_i = f_i.at[-1, :, 7].set(f_prev[-2, :, 7])
             return f_i
-        def bounce_back_cylinder(f_i, f_prev):
-            f_i = jnp.where(obstacle_mask[..., jnp.newaxis], f_prev[..., self.lattice.opp_indices], f_i)
-            return f_i
+
         rho, u = self.macro_vars(f)
         u_inlet  = u[0, :, :] + 0.5 * (u[ 0, :, :] - u[ 1, :, :])
-        # u_inlet  = u[ 0, :, :]
         u_outlet = u[-2, :, :] + 0.5 * (u[-2, :, :] - u[-3, :, :])
-        # u_outlet = u[-1, :, :]
         f = anti_bounce_back_inlet(f, f_prev)
         f = anti_bounce_back_outlet(f, f_prev)
         f = bounce_back_tube(f, f_prev)
-        f = bounce_back_cylinder(f, f_prev)
         f = neumann_outlet(f, f_prev)
         return f
-
-    def plot(self, f, it, **kwargs):
-        rho, u = self.macro_vars(f)
-        # print(u[1, :, 0].mean())
-        # print(u[int(self.nx / 2), :, 0].mean())
-        u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        # plt.imshow(u[:,:,0].T, cmap='viridis')
-        plt.imshow(u_magnitude.T, cmap='viridis')
-        # plt.imshow(rho.T, cmap='viridis')
-        plt.gca().invert_yaxis()
-        plt.colorbar()
-        plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=150)
-        plt.clf()
-        # plt.plot(self.x, u[:, int(self.nx / 2), 1], label="Velocity Profile")
-        # plt.legend()
-        # plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
-        # plt.clf()
 
 # def poiseuille_analytical():
 #     y = jnp.arange(1, ny + 1) - 0.5
@@ -118,19 +95,19 @@ def initialize_grid(nx, ny, r):
 
 if __name__ == "__main__":
     time1 = time.time()
-    nx = 180
-    ny = 30
+    # Define mesh and constants
+    nx = 250
+    ny = 50
     nt = int(1e4)
-    # nt = int(4e2)
     rho0 = 1
     tau = 1
     lattice = LatticeD2Q9()
     plot_every = 100
     plot_from = 0
+    # initialise rho_bc, a matrix mask specifying which densities need to be enforced at certain coordinates
     rho_bc = jnp.ones((nx, ny))*rho0
     rho_bc = rho_bc.at[0, :].set(1.05)
-    obstacle_mask = initialize_grid(nx, ny, 8)
-
+    # Set kwargs
     kwargs = {
         'lattice': lattice,
         'tau': tau,
@@ -140,8 +117,8 @@ if __name__ == "__main__":
         'plot_every': plot_every,
         'plot_from': plot_from,
         'debug': (True, 299),
-
     }
+    # Create simulation and run
     simPoiseuille = Poiseuille(**kwargs)
     simPoiseuille.run(nt)
     time2 = time.time()
