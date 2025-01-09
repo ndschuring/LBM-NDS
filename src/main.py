@@ -9,7 +9,6 @@ import vtk
 import numpy as np
 from numpy.ma.core import zeros_like
 
-
 # jax.config.update("jax_enable_x64", True)
 
 class LBM:
@@ -19,6 +18,11 @@ class LBM:
         self.ny = kwargs.get("ny") #y dimension
         self.nz = kwargs.get("nz") #z dimension
         self.lattice = kwargs.get("lattice") #set lattice
+        # if an obstacle mask is provided, reset dimensions
+        self.collision_mask = kwargs['collision_mask']
+        if self.collision_mask is not None:
+            self.bounce_mask = self.get_bounce_mask(self.collision_mask)
+            self.nx, self.ny, self.nz = self.bounce_mask.shape
         # set dimensions based on lattice
         self.dimensions = [self.nx or 0, self.ny or 0, self.nz or 0]
         self.dimensions = self.dimensions[:self.lattice.d]
@@ -54,6 +58,15 @@ class LBM:
         :return: String representation of self
         """
         return "undefined_sim"
+
+    def get_bounce_mask(self, collision_mask):
+        shifted_mask = jnp.stack([
+            jnp.roll(collision_mask, shift=(dx, dy), axis=(0, 1))
+            for dx, dy in self.lattice.c.T
+        ], axis=-1)
+        boundary_mask = (~shifted_mask[:, :, 0]) & jnp.any(shifted_mask[:, :, 1:], axis=-1)
+        bounce_mask = boundary_mask[..., jnp.newaxis] & shifted_mask
+        return bounce_mask
 
     def run(self, nt):
         """
