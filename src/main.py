@@ -292,6 +292,8 @@ class LBM:
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
         # Plot velocity (magnitude or x-component of velocity vector)
         # plt.imshow(u[:,:,0].T, cmap='viridis')
+        if type(self.collision_mask) is not None:
+            u_magnitude = jnp.where(self.collision_mask, 0, u_magnitude)
         plt.imshow(u_magnitude.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar(label="velocity magnitude")
