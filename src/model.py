@@ -103,13 +103,13 @@ class BGKMulti(BGK):
         g_post_col = self.g_collision(g_prev, f=f_prev, force=force_prev)
         # Optional pre-streaming boundary conditions
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
-        g_post_col = self.apply_pre_bc(g_post_col, g_prev)
+        g_post_col = self.apply_pre_bc(g_post_col, g_prev, g_tag=True)
         # Streaming of f and g
         f_post_stream = self.stream(f_post_col)
         g_post_stream = self.stream(g_post_col)
         # Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
-        g_post_stream = self.apply_bc(g_post_stream, g_post_col)
+        g_post_stream = self.apply_bc(g_post_stream, g_post_col, g_tag=True)
         return f_post_stream, g_post_stream, f_prev, g_prev
 
     def force_term(self, f, **kwargs):
