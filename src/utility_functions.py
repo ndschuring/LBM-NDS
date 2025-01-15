@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 def nabla(grid):
     # using built-in methods
@@ -10,48 +11,50 @@ def laplacian(grid):
     laplacian_ = jnp.zeros_like(grid)  # Initialize a new array with the same shape as the input grid, filled with zeros
     NX = grid.shape[0]
     NY = grid.shape[1]
-    grad_padded = jnp.pad(grid, 2, mode='edge') #-> wrap for periodic, edge for non-periodic
-    grad_ineg2_jneg2 = grad_padded[:NX, :NY]
-    grad_ineg2_jneg1 = grad_padded[:NX, 1:NY + 1]
-    grad_ineg2_j0 = grad_padded[:NX, 2:NY + 2]
-    grad_ineg2_jpos1 = grad_padded[:NX, 3:NY + 3]
-    grad_ineg2_jpos2 = grad_padded[:NX, 4:NY + 4]
+    # grid_padded = jnp.pad(grid, 2, mode='edge') #-> wrap for periodic, edge for non-periodic
+    grid_padded = jnp.pad(grid, ((2, 2), (0, 0)), mode='wrap') #-> wrap for periodic, edge for non-periodic
+    grid_padded = jnp.pad(grid_padded, ((0, 0), (2, 2)), mode='edge')
+    grid_ineg2_jneg2 = grid_padded[:NX, :NY]
+    grid_ineg2_jneg1 = grid_padded[:NX, 1:NY + 1]
+    grid_ineg2_j0 = grid_padded[:NX, 2:NY + 2]
+    grid_ineg2_jpos1 = grid_padded[:NX, 3:NY + 3]
+    grid_ineg2_jpos2 = grid_padded[:NX, 4:NY + 4]
 
-    grad_ineg1_jneg2 = grad_padded[1:NX + 1, :NY]
-    grad_ineg1_jneg1 = grad_padded[1:NX + 1, 1:NY + 1]
-    grad_ineg1_j0 = grad_padded[1:NX + 1, 2:NY + 2]
-    grad_ineg1_jpos1 = grad_padded[1:NX + 1, 3:NY + 3]
-    grad_ineg1_jpos2 = grad_padded[1:NX + 1, 4:NY + 4]
+    grid_ineg1_jneg2 = grid_padded[1:NX + 1, :NY]
+    grid_ineg1_jneg1 = grid_padded[1:NX + 1, 1:NY + 1]
+    grid_ineg1_j0 = grid_padded[1:NX + 1, 2:NY + 2]
+    grid_ineg1_jpos1 = grid_padded[1:NX + 1, 3:NY + 3]
+    grid_ineg1_jpos2 = grid_padded[1:NX + 1, 4:NY + 4]
 
-    grad_i0_jneg2 = grad_padded[2:NX + 2, :NY]
-    grad_i0_jneg1 = grad_padded[2:NX + 2, 1:NY + 1]
-    grad_i0_j0 = grad_padded[2:NX + 2, 2:NY + 2]
-    grad_i0_jpos1 = grad_padded[2:NX + 2, 3:NY + 3]
-    grad_i0_jpos2 = grad_padded[2:NX + 2, 4:NY + 4]
+    grid_i0_jneg2 = grid_padded[2:NX + 2, :NY]
+    grid_i0_jneg1 = grid_padded[2:NX + 2, 1:NY + 1]
+    grid_i0_j0 = grid_padded[2:NX + 2, 2:NY + 2]
+    grid_i0_jpos1 = grid_padded[2:NX + 2, 3:NY + 3]
+    grid_i0_jpos2 = grid_padded[2:NX + 2, 4:NY + 4]
 
-    grad_ipos1_jneg2 = grad_padded[3:NX + 3, :NY]
-    grad_ipos1_jneg1 = grad_padded[3:NX + 3, 1:NY + 1]
-    grad_ipos1_j0 = grad_padded[3:NX + 3, 2:NY + 2]
-    grad_ipos1_jpos1 = grad_padded[3:NX + 3, 3:NY + 3]
-    grad_ipos1_jpos2 = grad_padded[3:NX + 3, 4:NY + 4]
+    grid_ipos1_jneg2 = grid_padded[3:NX + 3, :NY]
+    grid_ipos1_jneg1 = grid_padded[3:NX + 3, 1:NY + 1]
+    grid_ipos1_j0 = grid_padded[3:NX + 3, 2:NY + 2]
+    grid_ipos1_jpos1 = grid_padded[3:NX + 3, 3:NY + 3]
+    grid_ipos1_jpos2 = grid_padded[3:NX + 3, 4:NY + 4]
 
-    grad_ipos2_jneg2 = grad_padded[4:NX + 4, :NY]
-    grad_ipos2_jneg1 = grad_padded[4:NX + 4, 1:NY + 1]
-    grad_ipos2_j0 = grad_padded[4:NX + 4, 2:NY + 2]
-    grad_ipos2_jpos1 = grad_padded[4:NX + 4, 3:NY + 3]
-    grad_ipos2_jpos2 = grad_padded[4:NX + 4, 4:NY + 4]
+    grid_ipos2_jneg2 = grid_padded[4:NX + 4, :NY]
+    grid_ipos2_jneg1 = grid_padded[4:NX + 4, 1:NY + 1]
+    grid_ipos2_j0 = grid_padded[4:NX + 4, 2:NY + 2]
+    grid_ipos2_jpos1 = grid_padded[4:NX + 4, 3:NY + 3]
+    grid_ipos2_jpos2 = grid_padded[4:NX + 4, 4:NY + 4]
 
     laplacian_ = laplacian_.at[:, :].set(
-        0 * grad_ineg2_jneg2 + (-1 / 30) * grad_ineg2_jneg1 + (-1 / 60) * grad_ineg2_j0 + (
-                -1 / 30) * grad_ineg2_jpos1 + 0 * grad_ineg2_jpos2 +
-        (-1 / 30) * grad_ineg1_jneg2 + (4 / 15) * grad_ineg1_jneg1 + (13 / 15) * grad_ineg1_j0 + (
-                4 / 15) * grad_ineg1_jpos1 + (-1 / 30) * grad_ineg1_jpos2 +
-        (-1 / 60) * grad_i0_jneg2 + (13 / 15) * grad_i0_jneg1 + (-21 / 5) * grad_i0_j0 + (13 / 15) * grad_i0_jpos1 + (
-                -1 / 60) * grad_i0_jpos2 +
-        (-1 / 30) * grad_ipos1_jneg2 + (4 / 15) * grad_ipos1_jneg1 + (13 / 15) * grad_ipos1_j0 + (
-                4 / 15) * grad_ipos1_jpos1 + (-1 / 30) * grad_ipos1_jpos2 +
-        0 * grad_ipos2_jneg2 + (-1 / 30) * grad_ipos2_jneg1 + (-1 / 60) * grad_ipos2_j0 + (
-                -1 / 30) * grad_ipos2_jpos1 + 0 * grad_ipos2_jpos2)
+        0 * grid_ineg2_jneg2 + (-1 / 30) * grid_ineg2_jneg1 + (-1 / 60) * grid_ineg2_j0 + (
+                -1 / 30) * grid_ineg2_jpos1 + 0 * grid_ineg2_jpos2 +
+        (-1 / 30) * grid_ineg1_jneg2 + (4 / 15) * grid_ineg1_jneg1 + (13 / 15) * grid_ineg1_j0 + (
+                4 / 15) * grid_ineg1_jpos1 + (-1 / 30) * grid_ineg1_jpos2 +
+        (-1 / 60) * grid_i0_jneg2 + (13 / 15) * grid_i0_jneg1 + (-21 / 5) * grid_i0_j0 + (13 / 15) * grid_i0_jpos1 + (
+                -1 / 60) * grid_i0_jpos2 +
+        (-1 / 30) * grid_ipos1_jneg2 + (4 / 15) * grid_ipos1_jneg1 + (13 / 15) * grid_ipos1_j0 + (
+                4 / 15) * grid_ipos1_jpos1 + (-1 / 30) * grid_ipos1_jpos2 +
+        0 * grid_ipos2_jneg2 + (-1 / 30) * grid_ipos2_jneg1 + (-1 / 60) * grid_ipos2_j0 + (
+                -1 / 30) * grid_ipos2_jpos1 + 0 * grid_ipos2_jpos2)
 
     return laplacian_
 
@@ -86,6 +89,27 @@ def initialize_circle(nx, ny, r):
     # Create a boolean grid where True is inside the circle and False is outside
     grid = distance_from_center <= r
     return grid, nx, ny
+
+def place_circle(grid, r):
+    """
+    Place a circle of radius r at centre of provided grid, with value 1.
+    :param grid:
+    :param r: Radius of the circle at the center.
+    :return: jnp.ndarray: A 2D array representing the initialized grid.
+    """
+    nx, ny = grid.shape
+    # Create a grid of indices
+    x = jnp.arange(nx)
+    y = jnp.arange(ny)
+    xx, yy = jnp.meshgrid(x, y, indexing='ij')
+    # Compute the distance from the center
+    center_x, center_y = nx // 2, ny // 2
+    distance_from_center = jnp.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
+    # Create a boolean grid where True is inside the circle and False is outside
+    boolean_circle = distance_from_center <= r
+    grid = jnp.where(boolean_circle, 1, grid)
+    return grid
+
 
 def nabla_(grid):
     # using grad_2D from sacha, unused
@@ -256,7 +280,12 @@ if __name__ == '__main__':
     testgrid = jnp.array([[1, 2, 1],
                           [0, 0, 1],
                           [3, 2, 1]])
+    testgrid2 = jnp.zeros((50, 50))
+    # testgrid2 = jax.random.uniform(key, shape=(50, 50))
+    # testgrid2 = place_circle(testgrid2, 4)
+    # debug_numpy = np.asarray(testgrid2)
     # grid2D = jax.random.uniform(key, shape=(nx, ny))
+    laplace = laplacian(testgrid2)
     # grid3D = jax.random.uniform(key, shape=(nx, ny, nz))
     # # print(testgrid.shape)
     # print(nabla(testgrid).shape)
