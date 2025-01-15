@@ -39,15 +39,39 @@ class Couette(BGKMulti):
 
         def moving_wall_correction(f_i):
             # Top wall correction factor for moving wall
-            f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
-            f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,6], u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], self.u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], self.u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            f_i = f_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,6], self.u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
             return f_i
 
         rho, u = self.macro_vars(f)
         f_i = bounce_back_couette2D(f, f_prev)
         f_i = moving_wall_correction(f_i)
         return f_i
+
+    def apply_bc_g(self, g, g_prev, **kwargs):
+        def bounce_back_couette2D(g_i, g_prev):
+            # Bounce-back top wall
+            g_i = g_i.at[:, -1, 7].set(g_prev[:, -1, 5])
+            g_i = g_i.at[:, -1, 4].set(g_prev[:, -1, 2])
+            g_i = g_i.at[:, -1, 8].set(g_prev[:, -1, 6])
+            # Bounce-back bottom wall
+            g_i = g_i.at[:,  0, 6].set(g_prev[:,  0, 8])
+            g_i = g_i.at[:,  0, 2].set(g_prev[:,  0, 4])
+            g_i = g_i.at[:,  0, 5].set(g_prev[:,  0, 7])
+            return g_i
+
+        def moving_wall_correction(g_i):
+            # Top wall correction factor for moving wall
+            g_i = g_i.at[:, -1, 7].add( - 2 * self.lattice.w[5]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,5], self.u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            g_i = g_i.at[:, -1, 4].add( - 2 * self.lattice.w[2]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,2], self.u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            g_i = g_i.at[:, -1, 8].add( - 2 * self.lattice.w[6]*rho[:,-1]*(jnp.tensordot(self.lattice.c[:,6], self.u_bc[:, -1], axes=(-1, -1))/self.lattice.cs2))
+            return g_i
+
+        rho, u = self.macro_vars(g)
+        g_i = bounce_back_couette2D(g, g_prev)
+        g_i = moving_wall_correction(g_i)
+        return g_i
 
 
 if __name__ == "__main__":
