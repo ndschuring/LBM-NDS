@@ -102,14 +102,14 @@ class BGKMulti(BGK):
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev, g=g_prev)
         g_post_col = self.g_collision(g_prev, f=f_prev, force=force_prev)
         # Optional pre-streaming boundary conditions
-        f_post_col = self.apply_pre_bc(f_post_col, f_prev)
-        g_post_col = self.apply_pre_bc(g_post_col, g_prev, g_tag=True)
+        f_post_col = self.apply_pre_bc(f_post_col, f_prev, g_pop=g_post_col)
+        g_post_col = self.apply_pre_bc_g(g_post_col, g_prev, f_pop=f_post_col)
         # Streaming of f and g
         f_post_stream = self.stream(f_post_col)
         g_post_stream = self.stream(g_post_col)
         # Apply boundary conditions
-        f_post_stream = self.apply_bc(f_post_stream, f_post_col)
-        g_post_stream = self.apply_bc(g_post_stream, g_post_col, g_tag=True)
+        g_post_stream = self.apply_bc_g(g_post_stream, g_post_col, f_pop=f_post_stream)
+        f_post_stream = self.apply_bc(f_post_stream, f_post_col, g_pop=g_post_stream)
         return f_post_stream, g_post_stream, f_prev, g_prev
 
     def force_term(self, f, **kwargs):
@@ -127,6 +127,28 @@ class BGKMulti(BGK):
 
     def free_energy(self, phi): #TODO define free energy
         pass
+
+    def apply_bc_g(self, g, g_prev, **kwargs):
+        """
+        Apply boundary conditions to g population.
+        if not specified in model class, will apply the same boundary conditions as f.
+        :param g:
+        :param g_prev:
+        :param kwargs:
+        :return:
+        """
+        return self.apply_bc(g, g_prev, **kwargs)
+
+    def apply_pre_bc_g(self, g, g_prev, **kwargs):
+        """
+        Apply boundary conditions to g population before streaming step.
+        If not specified in model class, will apply the same boundary conditions as f.
+        :param g:
+        :param g_prev:
+        :param kwargs:
+        :return:
+        """
+        return self.apply_pre_bc(g, g_prev, **kwargs)
 
     def chemical_potential(self, phi):
         """
@@ -208,7 +230,7 @@ class BGKMulti(BGK):
         plt.xlabel("x [lattice units]")
         plt.ylabel("y [lattice units]")
         plt.title("it:" + str(it) + " sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=150)
+        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=250)
         plt.clf()
         # Plot order parameter phi
         plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
@@ -217,7 +239,7 @@ class BGKMulti(BGK):
         plt.xlabel("x [lattice units]")
         plt.ylabel("y [lattice units]")
         plt.title("it:"+str(it)+" Order parameter phi")
-        plt.savefig(self.sav_dir+"/fig_2D_phi_it"+str(it)+".jpg", dpi=150)
+        plt.savefig(self.sav_dir+"/fig_2D_phi_it"+str(it)+".jpg", dpi=250)
         plt.clf()
 
 

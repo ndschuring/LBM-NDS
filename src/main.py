@@ -19,7 +19,7 @@ class LBM:
         self.nz = kwargs.get("nz") #z dimension
         self.lattice = kwargs.get("lattice") #set lattice
         # if an obstacle mask is provided, reset dimensions
-        self.collision_mask = kwargs['collision_mask']
+        self.collision_mask = kwargs.get('collision_mask')
         if self.collision_mask is not None:
             self.bounce_mask = self.get_bounce_mask(self.collision_mask)
             self.nx, self.ny, self.nz = self.bounce_mask.shape
@@ -300,5 +300,5 @@ class LBM:
         plt.xlabel("x [lattice units]")
         plt.ylabel("y [lattice units]")
         plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
+        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=250)
         plt.clf()
