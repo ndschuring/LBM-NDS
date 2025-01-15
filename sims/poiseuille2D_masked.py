@@ -25,34 +25,35 @@ Pressure dirichlet     |                                           |        Pres
 class Poiseuille(BGK):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.rho_bc = kwargs.get('rho_bc')
 
     def __str__(self):
         return "Poiseuille_masked"
 
     def apply_bc(self, f, f_prev, **kwargs):
         def anti_bounce_back_inlet(f_i, f_prev):
-            f_i = f_i.at[0, :, 5].set(-f_prev[0, :, 7] + 2 * self.lattice.w[7] * rho_bc[0, :] * (
+            f_i = f_i.at[0, :, 5].set(-f_prev[0, :, 7] + 2 * self.lattice.w[7] * self.rho_bc[0, :] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 7], u_inlet, axes=(-1, -1)) ** 2) / (
                         2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_inlet, u_inlet)/(2*self.lattice.cs2)) ))
 
-            f_i = f_i.at[0, :, 1].set(-f_prev[0, :, 3] + 2 * self.lattice.w[3] * rho_bc[0, :] * (
+            f_i = f_i.at[0, :, 1].set(-f_prev[0, :, 3] + 2 * self.lattice.w[3] * self.rho_bc[0, :] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 3], u_inlet, axes=(-1, -1)) ** 2) / (
                     2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_inlet, u_inlet)/(2*self.lattice.cs2)) ))
 
-            f_i = f_i.at[0, :, 8].set(-f_prev[0, :, 6] + 2 * self.lattice.w[6] * rho_bc[0, :] * (
+            f_i = f_i.at[0, :, 8].set(-f_prev[0, :, 6] + 2 * self.lattice.w[6] * self.rho_bc[0, :] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 6], u_inlet, axes=(-1, -1)) ** 2) / (
                     2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_inlet, u_inlet)/(2*self.lattice.cs2)) ))
             return f_i
         def anti_bounce_back_outlet(f_i, f_prev):
-            f_i = f_i.at[-2, :, 7].set(-f_prev[-2, :, 5] + 2 * self.lattice.w[5] * rho_bc[-2, :] * (
+            f_i = f_i.at[-2, :, 7].set(-f_prev[-2, :, 5] + 2 * self.lattice.w[5] * self.rho_bc[-2, :] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 5], u_outlet, axes=(-1, -1)) ** 2) / (
                         2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_outlet, u_outlet)/(2*self.lattice.cs2)) ))
 
-            f_i = f_i.at[-2, :, 3].set(-f_prev[-2, :, 1] + 2 * self.lattice.w[1] * rho_bc[-2, :] * (
+            f_i = f_i.at[-2, :, 3].set(-f_prev[-2, :, 1] + 2 * self.lattice.w[1] * self.rho_bc[-2, :] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 1], u_outlet, axes=(-1, -1)) ** 2) / (
                     2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_outlet, u_outlet)/(2*self.lattice.cs2)) ))
 
-            f_i = f_i.at[-2, :, 6].set(-f_prev[-2, :, 8] + 2 * self.lattice.w[8] * rho_bc[-2, :] * (
+            f_i = f_i.at[-2, :, 6].set(-f_prev[-2, :, 8] + 2 * self.lattice.w[8] * self.rho_bc[-2, :] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 8], u_outlet, axes=(-1, -1)) ** 2) / (
                     2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_outlet, u_outlet)/(2*self.lattice.cs2)) ))
             return f_i
@@ -88,10 +89,10 @@ if __name__ == "__main__":
     rho0 = 1
     tau = 1.2
     lattice = LatticeD2Q9()
-    plot_every = 50
+    plot_every = 100
     plot_from = 0
     # Set collision mask from image
-    image = cv2.imread('C:/Users/ndsch/PycharmProjects/LBM-NDS/src/masks/flow2.png', cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread('C:/Users/ndsch/PycharmProjects/LBM-NDS/src/masks/flow1.png', cv2.IMREAD_GRAYSCALE)
     collision_mask = mask_from_image(image)
     nx, ny = collision_mask.shape
     # initialise rho_bc, a matrix mask specifying which densities need to be enforced at certain coordinates
@@ -105,6 +106,7 @@ if __name__ == "__main__":
         'plot_every': plot_every,
         'plot_from': plot_from,
         'collision_mask': collision_mask,
+        'rho_bc': rho_bc,
     }
     # Create simulation and run
     simPoiseuille = Poiseuille(**kwargs)
