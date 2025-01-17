@@ -91,25 +91,53 @@ class BGKMulti(BGK):
         :param f_prev: distribution function f of previous iteration (*dim, q)
         :return: f_post_stream: distribution function f of current iteration (*dim, q), f_prev
         """
-        # it = kwargs.get("it")
-        # if it >= 945:
-        #     print("break")
-        # get g and forcing/sourcing terms
+        it = kwargs.get("it")
+        if self.debug:
+            if it >= self.plot_from:
+                print("Debug!")
+        ## get g and forcing/sourcing terms
         g_prev = kwargs.get("g_prev")
         force_prev = self.force_term(f_prev, g=g_prev)
         source_prev = self.source_term(f_prev, force_prev)
-        # collision of f and g according to model
+        if self.debug:
+            f_prev_debug = np.asarray(f_prev)
+            rho_prev_debug = np.asarray(self.macro_vars(f_prev)[0])
+            g_prev_debug = np.asarray(g_prev)
+            phi_prev_debug = np.asarray(self.macro_vars(g_prev)[0])
+            force_prev_debug = np.asarray(force_prev)
+            source_prev_debug = np.asarray(source_prev)
+        ## collision of f and g according to model
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev, g=g_prev)
         g_post_col = self.g_collision(g_prev, f=f_prev, force=force_prev)
-        # Optional pre-streaming boundary conditions
+        if self.debug:
+            f_post_col_debug = np.asarray(f_post_col)
+            rho_post_col_debug = np.asarray(self.macro_vars(f_post_col)[0])
+            g_post_col_debug = np.asarray(g_post_col)
+            phi_post_col_debug = np.asarray(self.macro_vars(g_post_col)[0])
+        ## Optional pre-streaming boundary conditions
         f_post_col = self.apply_pre_bc(f_post_col, f_prev, g_pop=g_post_col)
         g_post_col = self.apply_pre_bc_g(g_post_col, g_prev, f_pop=f_post_col)
-        # Streaming of f and g
+        # if self.debug:
+        #     f_post_col_debug_prebc = np.asarray(f_post_col)
+        #     rho_post_col_debug_prebc = np.asarray(self.macro_vars(f_post_col)[0])
+        #     g_post_col_debug_prebc = np.asarray(g_post_col)
+        #     phi_post_col_debug_prebc = np.asarray(self.macro_vars(g_post_col)[0])
+        ## Streaming of f and g
         f_post_stream = self.stream(f_post_col)
         g_post_stream = self.stream(g_post_col)
-        # Apply boundary conditions
-        g_post_stream = self.apply_bc_g(g_post_stream, g_post_col, f_pop=f_post_stream)
+        if self.debug:
+            f_post_stream_debug = np.asarray(f_post_stream)
+            rho_post_stream_debug = np.asarray(self.macro_vars(f_post_stream)[0])
+            g_post_stream_debug = np.asarray(g_post_stream)
+            phi_post_stream_debug = np.asarray(self.macro_vars(g_post_stream)[0])
+        ## Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col, g_pop=g_post_stream)
+        g_post_stream = self.apply_bc_g(g_post_stream, g_post_col, f_pop=f_post_stream)
+        if self.debug:
+            f_post_stream_debug_bc = np.asarray(f_post_stream)
+            rho_post_stream_debug_bc = np.asarray(self.macro_vars(f_post_stream)[0])
+            g_post_stream_debug_bc = np.asarray(g_post_stream)
+            phi_post_stream_debug_bc = np.asarray(self.macro_vars(g_post_stream)[0])
         return f_post_stream, g_post_stream, f_prev, g_prev
 
     def force_term(self, f, **kwargs):

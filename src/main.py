@@ -49,6 +49,8 @@ class LBM:
         # Boolean parameters
         self.write = kwargs.get("write", False)
         self.debug = kwargs.get("debug", False)
+        if self.debug:
+            jax.config.update("jax_disable_jit", True)
         self.multiphase_state = kwargs.get("multiphase_state", False)
 
     def __str__(self):
@@ -113,14 +115,31 @@ class LBM:
         # Calculate forcing/sourcing terms
         force_prev = self.force_term(f_prev)
         source_prev = self.source_term(f_prev, force_prev)
+        if self.debug:
+            f_prev_debug = np.asarray(f_prev)
+            rho_prev_debug = np.asarray(self.macro_vars(f_prev)[0])
+            force_prev_debug = np.asarray(force_prev)
+            source_prev_debug = np.asarray(source_prev)
         # Collision of f according to model
         f_post_col = self.collision(f_prev, source=source_prev, force=force_prev)
+        if self.debug:
+            f_post_col_debug = np.asarray(f_post_col)
+            rho_post_col_debug = np.asarray(self.macro_vars(f_post_col)[0])
         # Optional pre-streaming boundary conditions
         f_post_col = self.apply_pre_bc(f_post_col, f_prev)
+        # if self.debug:
+            # f_post_col_debug_pre = np.asarray(f_post_col)
+            # rho_post_col_debug_pre = np.asarray(self.macro_vars(f_post_col)[0])
         # Streaming of f
         f_post_stream = self.stream(f_post_col)
+        if self.debug:
+            f_post_stream_debug = np.asarray(f_post_stream)
+            rho_post_stream_debug = np.asarray(self.macro_vars(f_post_stream)[0])
         # Apply boundary conditions
         f_post_stream = self.apply_bc(f_post_stream, f_post_col)
+        if self.debug:
+            f_post_stream_debug_post = np.asarray(f_post_stream)
+            rho_post_stream_debug_post = np.asarray(self.macro_vars(f_post_stream)[0])
         return f_post_stream, f_prev
 
     @partial(jit, static_argnums=0, inline=True)
@@ -135,6 +154,8 @@ class LBM:
         :param force: force density of shape (*dim, d)
         :return: macroscopic variables of f, rho of shape (*dim), u of shape (*dim, d)
         """
+        if f == None:
+            return None, None
         rho = jnp.sum(f, axis=-1)
         u = jnp.dot(f, self.lattice.c.T) / rho[..., jnp.newaxis] #velocity (divide by rho)
         if force is not None:
