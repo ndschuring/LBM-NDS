@@ -154,7 +154,12 @@ class BGKMulti(BGK):
         return force_term
 
     def free_energy(self, phi): #TODO define free energy
-        pass
+        """
+        Calculates Landau Free Energy. Van der Sman et al.
+        :param phi:
+        :return:
+        """
+        return self.param_A/2 * phi**2 + self.param_B/4 * phi**4 + self.kappa/2 * np.sum(nabla(phi)**2)
 
     def apply_bc_g(self, g, g_prev, **kwargs):
         """
