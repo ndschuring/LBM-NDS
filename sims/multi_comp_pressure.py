@@ -8,6 +8,7 @@ import numpy as np
 import jax
 import time
 import cv2
+import sys
 
 """
 2D poiseuille flow driven by anti-bounce-back inlet/outlet boundary conditions.
@@ -79,15 +80,15 @@ class Poiseuille(BGKMulti):
 
     def apply_bc_g(self, g, g_prev, **kwargs):
         def anti_bounce_back_inlet(g_i, g_prev):
-            g_i = g_i.at[1, 1:-1, 5].set(g_prev[0, 1:-1, 7] - 2 * self.lattice.w[7] * self.phi_bc[0, 1:-1] * (
+            g_i = g_i.at[0, 1:-1, 5].set(g_prev[0, 1:-1, 7] - 2 * self.lattice.w[7] * self.phi_bc[0, 1:-1] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 7], u_inlet, axes=(-1, -1)) ** 2) / (
                     2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_inlet, u_inlet) / (2 * self.lattice.cs2))))
 
-            g_i = g_i.at[1, 1:-1, 1].set(g_prev[0, 1:-1, 3] - 2 * self.lattice.w[3] * self.phi_bc[0, 1:-1] * (
+            g_i = g_i.at[0, 1:-1, 1].set(g_prev[0, 1:-1, 3] - 2 * self.lattice.w[3] * self.phi_bc[0, 1:-1] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 3], u_inlet, axes=(-1, -1)) ** 2) / (
                     2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_inlet, u_inlet) / (2 * self.lattice.cs2))))
 
-            g_i = g_i.at[1, 1:-1, 8].set(g_prev[0, 1:-1, 6] - 2 * self.lattice.w[6] * self.phi_bc[0, 1:-1] * (
+            g_i = g_i.at[0, 1:-1, 8].set(g_prev[0, 1:-1, 6] - 2 * self.lattice.w[6] * self.phi_bc[0, 1:-1] * (
                     1 + ((jnp.tensordot(self.lattice.c[:, 6], u_inlet, axes=(-1, -1)) ** 2) / (
                     2 * self.lattice.cs2 ** 2)) - (jnp.einsum("ij,ij->i", u_inlet, u_inlet) / (2 * self.lattice.cs2))))
             return g_i
@@ -152,7 +153,7 @@ if __name__ == "__main__":
     rho0 = 1.0
     tau = 1.0
     lattice = LatticeD2Q9()
-    plot_every = 100
+    plot_every = 1
     plot_from = 0
     # Set collision mask from image
     image = cv2.imread('C:/Users/ndsch/PycharmProjects/LBM-NDS/src/masks/flow2.png', cv2.IMREAD_GRAYSCALE)
@@ -170,8 +171,8 @@ if __name__ == "__main__":
     ## set entire domain to 0
     # phi_init = jnp.zeros((nx, ny))
     ## set entire domain to -1 or 1 or in between.
-    # phi_init = jnp.ones((nx, ny)).at[:,:].set(-1)
-    # phi_init = place_circle(phi_init, 15)
+    phi_init = jnp.ones((nx, ny)).at[:,:].set(-1)
+    phi_init = place_circle(phi_init, 15, 1)
     ## set enforcement rules equal to initialisation.
     phi_bc = phi_init
 
@@ -197,7 +198,6 @@ if __name__ == "__main__":
         'kappa': kappa,
         'tau_phi': tau_phi,
         'phi_init': phi_init,
-        'debug': True,
     }
     # Create simulation and run
     simPoiseuille = Poiseuille(**kwargs)

@@ -1,11 +1,8 @@
-import matplotlib.pyplot as plt
 from src.lattice import LatticeD2Q9
 from src.model import BGKMulti
-from src.model import BGK
 from src.utility_functions import mask_from_image
 import jax.numpy as jnp
 import numpy as np
-import jax
 import time
 import cv2
 
@@ -190,7 +187,6 @@ if __name__ == "__main__":
         'kappa': kappa,
         'tau_phi': tau_phi,
         'phi_init': phi_init,
-        'debug': True,
     }
     # Create simulation and run
     simPoiseuille = Poiseuille(**kwargs)
