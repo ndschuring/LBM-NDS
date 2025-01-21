@@ -153,7 +153,7 @@ class BGKMulti(BGK):
         force_term = mu[..., jnp.newaxis]*nabla(phi)
         return force_term
 
-    def free_energy(self, phi): #TODO define free energy
+    def free_energy(self, phi):
         """
         Calculates Landau Free Energy. Van der Sman et al.
         :param phi:
@@ -245,7 +245,7 @@ class BGKMulti(BGK):
         f = kwargs.get("f")
         force = kwargs.get("force")
         rho, u = self.macro_vars(f, force)
-        phi, _ = self.macro_vars(g)
+        phi, u_phi = self.macro_vars(g, force)
         g_eq = self.g_equilibrium(phi, u)
         g_post_col = g - 1 / self.tau_phi * (g - g_eq)
         return g_post_col
@@ -257,7 +257,8 @@ class BGKMulti(BGK):
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
         # Plot velocity (magnitude or x-component of velocity vector)
         # plt.imshow(u[:,:,0].T, cmap='viridis')
-        plt.imshow(u_magnitude.T, cmap='viridis')
+        # plt.imshow(u_magnitude.T, cmap='viridis')
+        plt.imshow(rho.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar(label="Velocity magnitude")
         plt.xlabel("x [lattice units]")
@@ -266,21 +267,12 @@ class BGKMulti(BGK):
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=250)
         plt.clf()
         # Plot order parameter phi
-        plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
+        # plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
+        plt.imshow(phi.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar(label="Order Parameter")
         plt.xlabel("x [lattice units]")
         plt.ylabel("y [lattice units]")
-        plt.title("it:"+str(it)+" Order parameter phi")
+        plt.title("it:"+str(it)+" Order parameter phi"+" sum_phi:"+str(jnp.sum(phi)))
         plt.savefig(self.sav_dir+"/fig_2D_phi_it"+str(it)+".jpg", dpi=250)
         plt.clf()
-
-
-class MRT(LBM):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.tau1 = kwargs.get("tau1")
-        self.tau2 = kwargs.get("tau2")
-
-    def collision(self, f, source=0, force=None):
-        pass
