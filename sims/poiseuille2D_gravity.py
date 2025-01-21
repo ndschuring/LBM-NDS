@@ -46,21 +46,6 @@ class Poiseuille(BGK):
         f = bb_vertical_tube2D(f)
         return f
 
-    def plot(self, f, it):
-        rho, u = self.macro_vars(f)
-        u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
-        plt.imshow(u[:,:,0].T, cmap='viridis')
-        plt.imshow(u_magnitude.T, cmap='viridis')
-        plt.gca().invert_yaxis()
-        plt.colorbar()
-        plt.title("it:" + str(it) + "sum_rho:" + str(jnp.sum(rho)))
-        plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg")
-        plt.clf()
-        # plt.plot(self.x, u[:, int(self.nx / 2), 1], label="Velocity Profile")
-        # plt.legend()
-        # plt.savefig(self.sav_dir + "/fig_1D_it" + str(it) + ".jpg")
-        # plt.clf()
-
 if __name__ == "__main__":
     time1 = time.time()
     nx = 30
