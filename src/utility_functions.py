@@ -1,6 +1,5 @@
 import jax
 import jax.numpy as jnp
-import numpy as np
 
 def nabla(grid):
     # using built-in methods
@@ -12,8 +11,8 @@ def laplacian(grid):
     NX = grid.shape[0]
     NY = grid.shape[1]
     # grid_padded = jnp.pad(grid, 2, mode='edge') #-> wrap for periodic, edge for non-periodic
-    grid_padded = jnp.pad(grid, ((2, 2), (0, 0)), mode='wrap') #-> wrap for periodic, edge for non-periodic
-    grid_padded = jnp.pad(grid_padded, ((0, 0), (2, 2)), mode='edge')
+    grid_padded = jnp.pad(grid, ((2, 2), (0, 0)), mode='edge') # Horizontal axis
+    grid_padded = jnp.pad(grid_padded, ((0, 0), (2, 2)), mode='edge')  # Vertical Axis
     grid_ineg2_jneg2 = grid_padded[:NX, :NY]
     grid_ineg2_jneg1 = grid_padded[:NX, 1:NY + 1]
     grid_ineg2_j0 = grid_padded[:NX, 2:NY + 2]
@@ -90,9 +89,9 @@ def initialize_circle(nx, ny, r):
     grid = distance_from_center <= r
     return grid, nx, ny
 
-def place_circle(grid, r):
+def place_circle(grid, r, value=1):
     """
-    Place a circle of radius r at centre of provided grid, with value 1.
+    Place a circle of radius r at centre of provided grid, with value of value.
     :param grid:
     :param r: Radius of the circle at the center.
     :return: jnp.ndarray: A 2D array representing the initialized grid.
@@ -107,7 +106,7 @@ def place_circle(grid, r):
     distance_from_center = jnp.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
     # Create a boolean grid where True is inside the circle and False is outside
     boolean_circle = distance_from_center <= r
-    grid = jnp.where(boolean_circle, 1, grid)
+    grid = jnp.where(boolean_circle, value, grid)
     return grid
 
 
