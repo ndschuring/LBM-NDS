@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import os
 import datetime
 from functools import partial
-import vtk
 import numpy as np
-from numpy.ma.core import zeros_like
+import sys
 
 # jax.config.update("jax_enable_x64", True)
 
@@ -48,7 +47,7 @@ class LBM:
             os.makedirs(self.sav_dir)
         # Boolean parameters
         self.write = kwargs.get("write", False)
-        self.debug = kwargs.get("debug", False)
+        self.debug  = sys.monitoring.get_tool(sys.monitoring.DEBUGGER_ID) is not None
         if self.debug:
             jax.config.update("jax_disable_jit", True)
         self.multiphase_state = kwargs.get("multiphase_state", False)
@@ -167,7 +166,7 @@ class LBM:
         --Specified in model class--
         Applies collision operator
         """
-        pass
+        return f
 
     def apply_bc(self, f, f_prev, **kwargs):
         """
@@ -198,7 +197,7 @@ class LBM:
 
     def source_term(self, f, force):
         """
-        Calculate the source term from the force density.
+        Calculate the source term from the force density, eq. 6.5 krüger et al.
         :param f: lattice populations of shape (*dim, q)
         :param force: force term/density of shape (*dim, d)
         :return source_term of shape (*dim, q)
@@ -316,6 +315,7 @@ class LBM:
         if type(self.collision_mask) is not None:
             u_magnitude = jnp.where(self.collision_mask, 0, u_magnitude)
         plt.imshow(u_magnitude.T, cmap='viridis')
+        # plt.imshow(rho.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar(label="velocity magnitude")
         plt.xlabel("x [lattice units]")
