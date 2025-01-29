@@ -1,5 +1,9 @@
 import jax
 import jax.numpy as jnp
+from PIL import Image
+import re
+import os
+
 
 def nabla(grid):
     # using built-in methods
@@ -89,7 +93,7 @@ def initialize_circle(nx, ny, r):
     grid = distance_from_center <= r
     return grid, nx, ny
 
-def place_circle(grid, r, value=1):
+def place_circle(grid, r, value=1, center_x=None, center_y=None):
     """
     Place a circle of radius r at centre of provided grid, with value of value.
     :param grid:
@@ -102,7 +106,10 @@ def place_circle(grid, r, value=1):
     y = jnp.arange(ny)
     xx, yy = jnp.meshgrid(x, y, indexing='ij')
     # Compute the distance from the center
-    center_x, center_y = nx // 2, ny // 2
+    if center_x is None:
+        center_x = nx // 2
+    if center_y is None:
+        center_y = ny // 2
     distance_from_center = jnp.sqrt((xx - center_x) ** 2 + (yy - center_y) ** 2)
     # Create a boolean grid where True is inside the circle and False is outside
     boolean_circle = distance_from_center <= r

@@ -5,13 +5,29 @@ from src.main import *
 class BGK(LBM):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.u_max = kwargs.get('u_max', 0.04)
         self.tau = kwargs.get("tau")  # relaxation factor tau
         if self.tau <= 0.5:
             raise ValueError("tau must be greater than 0.5")
         # Derived constants / Transport coefficients
         self.kinematic_viscosity = self.lattice.cs2*(self.tau - 1/2)
-        self.reynolds = None #TODO define Reynold's number from tau
+        # self.dynamic_viscosity = self.kinematic_viscosity*self.rho0 #option 1 from macroscopic formula
+        # self.dynamic_viscosity = self.rho0*self.lattice.cs2*(self.tau - 1/2) #option 2, eq. 4.17
+        self.mach = self.u_max/self.lattice.cs
+        if self.mach >= 1:
+            raise ValueError("Resulting mach number is too high for a stable simulation")
+        self.length_scale = kwargs.get("length_scale", min(self.dimensions))
+        self.reynolds = self.length_scale * self.u_max/self.kinematic_viscosity
         self.phi_init = kwargs.get("phi_init")
+        # Class initialisation message
+        print("--Simulation class created--")
+        print("Simulation name: ", self.sim_name)
+        print("--Simulation parameters [lattice units] --")
+        print("Mesh dimensions: ", self.dimensions)
+        print("Kinematic Viscosity: ", self.kinematic_viscosity)
+        print("--Dimensionless numbers--")
+        print("Reynold's number: ", self.reynolds)
+        print("Mach number: ", self.mach)
 
 
     @partial(jit, static_argnums=(0,), donate_argnums=(1,))
@@ -70,14 +86,19 @@ class BGKMulti(BGK):
             write_disk()
             plot()
         """
+        time1 = time.time()
+
         f, g = self.initialize()
         for it in range(nt):
             f, g, f_prev, g_prev = self.update(f, g_prev=g, it=it)  # updates f
             if it % self.plot_every == 0 and self.write:
                 self.write_disk(f, nt)
                 self.write_disk(g, nt)
-            if it % self.plot_every == 0 and it >= self.plot_from:
+            if it % self.plot_every == 0 and it >= self.plot_from and self.draw_plots:
                 self.plot(f, it, g=g)
+        time2 = time.time()
+        print(f"Completed in: {time2 - time1:.1f} s")
+        self.post_loop(f, nt, g=g)
         return f
 
     @partial(jax.jit, static_argnums=0)
@@ -257,8 +278,11 @@ class BGKMulti(BGK):
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
         # Plot velocity (magnitude or x-component of velocity vector)
         # plt.imshow(u[:,:,0].T, cmap='viridis')
-        # plt.imshow(u_magnitude.T, cmap='viridis')
-        plt.imshow(rho.T, cmap='viridis')
+        if self.collision_mask is not None:
+            u_magnitude = jnp.where(self.collision_mask, 0, u_magnitude)
+            u_magnitude = jnp.pad(u_magnitude, 2, "constant", constant_values=0)
+        plt.imshow(u_magnitude.T, cmap='viridis')
+        # plt.imshow(rho.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar(label="Velocity magnitude")
         plt.xlabel("x [lattice units]")
@@ -267,8 +291,8 @@ class BGKMulti(BGK):
         plt.savefig(self.sav_dir + "/fig_2D_it" + str(it) + ".jpg", dpi=250)
         plt.clf()
         # Plot order parameter phi
-        # plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
-        plt.imshow(phi.T, cmap='viridis')
+        plt.imshow(phi.T, cmap='viridis', vmin=-1, vmax=1)
+        # plt.imshow(phi.T, cmap='viridis')
         plt.gca().invert_yaxis()
         plt.colorbar(label="Order Parameter")
         plt.xlabel("x [lattice units]")

@@ -1,12 +1,16 @@
-import jax
-import jax.numpy as jnp
 from jax import jit
-import matplotlib.pyplot as plt
-import os
-import datetime
+from src.utility_functions import *
 from functools import partial
+import matplotlib.pyplot as plt
+import jax.numpy as jnp
 import numpy as np
+import datetime
+import time
+import jax
 import sys
+import os
+
+
 
 # jax.config.update("jax_enable_x64", True)
 
@@ -18,16 +22,17 @@ class LBM:
         self.nz = kwargs.get("nz") #z dimension
         self.lattice = kwargs.get("lattice") #set lattice
         # if an obstacle mask is provided, reset dimensions
-        self.collision_mask = kwargs.get('collision_mask')
+        self.collision_mask = kwargs.get('collision_mask', None)
         if self.collision_mask is not None:
             self.bounce_mask = self.get_bounce_mask(self.collision_mask)
             self.nx, self.ny, self.nz = self.bounce_mask.shape
         # set dimensions based on lattice
-        self.dimensions = [self.nx or 0, self.ny or 0, self.nz or 0]
+        self.dimensions = [self.nx or 1, self.ny or 1, self.nz or 1]
         self.dimensions = self.dimensions[:self.lattice.d]
         self.rho_dimension = tuple(self.dimensions)
         self.u_dimension = tuple((*self.dimensions, self.lattice.d))
         # density for initialisation
+        self.u_innit = kwargs.get('u_innit')
         self.rho0 = kwargs.get("rho0", 1) # scalar rho0
         self.rho0_ones = jnp.ones(self.rho_dimension)*self.rho0 # matrix rho0
         # Gravity Parameters
@@ -46,6 +51,8 @@ class LBM:
         if not os.path.isdir(self.sav_dir):
             os.makedirs(self.sav_dir)
         # Boolean parameters
+        self.draw_plots = kwargs.get("draw_plots", True)
+        self.create_video = kwargs.get("create_video", True)
         self.write = kwargs.get("write", False)
         self.debug  = sys.monitoring.get_tool(sys.monitoring.DEBUGGER_ID) is not None
         if self.debug:
@@ -77,13 +84,17 @@ class LBM:
         :return: final distribution function of shape (*dim, q)
         """
         # Initialise f of simulation
+        time1 = time.time()
         f = self.initialize()
         for it in range(nt):
             f, f_prev = self.update(f) #updates f
             if it % self.plot_every == 0 and self.write:
                 self.write_disk(f, nt)
-            if it % self.plot_every == 0 and it >= self.plot_from:
+            if it % self.plot_every == 0 and it >= self.plot_from and self.draw_plots:
                 self.plot(f, it)
+        time2 = time.time()
+        print(f"Completed in: {time2 - time1:.1f} s")
+        self.post_loop(f, nt)
         return f
 
     def initialize(self):
@@ -96,6 +107,8 @@ class LBM:
         :return: initial distribution function of shape (*dim, q)
         """
         u = jnp.zeros(self.u_dimension)
+        if self.u_innit is not None:
+            u = self.u_innit
         rho = self.rho0 * jnp.ones(self.rho_dimension)
         f = self.f_equilibrium(rho, u)
         return f
@@ -312,7 +325,7 @@ class LBM:
         u_magnitude = jnp.linalg.norm(u, axis=-1, ord=2)
         # Plot velocity (magnitude or x-component of velocity vector)
         # plt.imshow(u[:,:,0].T, cmap='viridis')
-        if type(self.collision_mask) is not None:
+        if self.collision_mask is not None:
             u_magnitude = jnp.where(self.collision_mask, 0, u_magnitude)
         plt.imshow(u_magnitude.T, cmap='viridis')
         # plt.imshow(rho.T, cmap='viridis')
