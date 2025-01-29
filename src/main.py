@@ -276,6 +276,11 @@ class LBM:
         """
         pass
 
+    def post_loop(self, f, nt, **kwargs):
+        self.plot(f, nt, **kwargs)
+        if self.create_video:
+            images_to_gif(self.sav_dir)
+        return f
 
     def write_disk(self, f, nt, **kwargs):
         """
@@ -327,6 +332,7 @@ class LBM:
         # plt.imshow(u[:,:,0].T, cmap='viridis')
         if self.collision_mask is not None:
             u_magnitude = jnp.where(self.collision_mask, 0, u_magnitude)
+            u_magnitude = jnp.pad(u_magnitude, 2, "constant", constant_values=0)
         plt.imshow(u_magnitude.T, cmap='viridis')
         # plt.imshow(rho.T, cmap='viridis')
         plt.gca().invert_yaxis()
