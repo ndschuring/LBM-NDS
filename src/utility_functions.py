@@ -123,18 +123,18 @@ def place_circle(grid, r, value=1, center_x=None, center_y=None):
     return grid
 
 
-def images_to_gif(image_folder, duration=100):
+def images_to_gif(image_folder, image_set, duration=100):
     def extract_iteration_number(filename):
         match = re.search(r'it(\d+)', filename)
         return int(match.group(1)) if match else float('inf')
-    print("Creating GIF...")
-    image_files = [f for f in os.listdir(image_folder) if f.lower().endswith(('png', 'jpg', 'jpeg', 'bmp'))]
+    print(f"Creating GIF... (image_set={image_set})")
+    image_files = [f for f in os.listdir(image_folder) if f.lower().endswith(('png', 'jpg', 'jpeg', 'bmp')) and image_set in f]
     if not image_files:
-        print("No images found in the specified folder.")
+        print("No matching images found in the specified folder.")
         return
     image_files.sort(key=extract_iteration_number)
     frames = [Image.open(os.path.join(image_folder, img)) for img in image_files]
-    gif_path = os.path.join(image_folder, "output.gif")
+    gif_path = os.path.join(image_folder, f"{image_set}_output.gif")
     frames[0].save(gif_path, format='GIF', append_images=frames[1:], save_all=True, duration=duration, loop=0)
     print(f"GIF saved as {gif_path}")
 
