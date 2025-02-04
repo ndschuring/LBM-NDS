@@ -9,6 +9,12 @@ def nabla(grid):
     # using built-in methods
     return jnp.stack(jnp.gradient(grid), axis=-1)
 
+def nabla_vector(vector):
+    gradients = [jnp.gradient(vector[..., i], axis=tuple(range(vector.ndim-1))) for i in range(vector.shape[-1])]
+    gradients = jnp.gradient(vector, axis=tuple(range(vector.ndim - 1)))
+    return jnp.stack(gradients, axis=-2)
+    # return jnp.stack(gradients, axis=-1)
+
 def laplacian(grid):
     # works well!
     laplacian_ = jnp.zeros_like(grid)  # Initialize a new array with the same shape as the input grid, filled with zeros
