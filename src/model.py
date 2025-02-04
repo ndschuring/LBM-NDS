@@ -96,6 +96,8 @@ class BGKMulti(BGK):
                 self.write_disk(g, nt)
             if it % self.plot_every == 0 and it >= self.plot_from and self.draw_plots:
                 self.plot(f, it, g=g)
+                if self.any_nan(f):
+                    raise ValueError("NaN encountered: simulation ended")
         time2 = time.time()
         print(f"Completed in: {time2 - time1:.1f} s")
         self.post_loop(f, nt, g=g)

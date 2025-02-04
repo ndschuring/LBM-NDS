@@ -59,6 +59,9 @@ class LBM:
             jax.config.update("jax_disable_jit", True)
         self.multiphase_state = kwargs.get("multiphase_state", False)
 
+    def any_nan(self, arr):
+        return jnp.any(jnp.isnan(arr))
+
     def __str__(self):
         """
         Fallback name if unspecified in simulation class
@@ -92,6 +95,8 @@ class LBM:
                 self.write_disk(f, nt)
             if it % self.plot_every == 0 and it >= self.plot_from and self.draw_plots:
                 self.plot(f, it)
+                if self.any_nan(f):
+                    raise ValueError("NaN encountered: simulation ended")
         time2 = time.time()
         print(f"Completed in: {time2 - time1:.1f} s")
         self.post_loop(f, nt)
