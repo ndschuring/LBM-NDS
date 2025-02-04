@@ -284,7 +284,8 @@ class LBM:
     def post_loop(self, f, nt, **kwargs):
         self.plot(f, nt, **kwargs)
         if self.create_video:
-            images_to_gif(self.sav_dir)
+            # velocity:
+            images_to_gif(self.sav_dir, "fig_2D")
         return f
 
     def write_disk(self, f, nt, **kwargs):
