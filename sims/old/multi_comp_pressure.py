@@ -156,7 +156,7 @@ if __name__ == "__main__":
     plot_every = 1
     plot_from = 0
     # Set collision mask from image
-    image = cv2.imread('C:/Users/ndsch/PycharmProjects/LBM-NDS/src/masks/flow2.png', cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread('/src/masks/flow2.png', cv2.IMREAD_GRAYSCALE)
     collision_mask = mask_from_image(image)
     nx, ny = collision_mask.shape
     # initialise rho_bc, a matrix mask specifying which densities need to be enforced at certain coordinates
