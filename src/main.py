@@ -96,11 +96,20 @@ class LBM:
             if it % self.plot_every == 0 and it >= self.plot_from and self.draw_plots:
                 self.plot(f, it)
                 if self.any_nan(f):
+                    self.crash_script()
                     raise ValueError("NaN encountered: simulation ended")
         time2 = time.time()
         print(f"Completed in: {time2 - time1:.1f} s")
         self.post_loop(f, nt)
         return f
+
+    def crash_script(self):
+        parent_dir = os.path.dirname(self.sav_dir)
+        current_folder = os.path.basename(self.sav_dir)
+        new_folder = f"{current_folder} - crashed"
+        new_save_dir = os.path.join(parent_dir, new_folder)
+        os.rename(self.sav_dir, new_save_dir)
+        raise
 
     def initialize(self):
         """

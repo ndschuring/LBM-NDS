@@ -360,6 +360,7 @@ class PhaseField(BGK):
             if it % self.plot_every == 0 and it >= self.plot_from and self.draw_plots:
                 self.plot(f, it, g=g, force=force_prev)
                 if self.any_nan(f):
+                    self.crash_script()
                     raise ValueError("NaN encountered: simulation ended")
         # display elapsed time
         time2 = time.time()
