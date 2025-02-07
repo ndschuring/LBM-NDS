@@ -25,7 +25,10 @@ class LBM:
         self.collision_mask = kwargs.get('collision_mask', None)
         if self.collision_mask is not None:
             self.bounce_mask = self.get_bounce_mask(self.collision_mask)
-            self.nx, self.ny, self.nz = self.bounce_mask.shape
+            if self.lattice.d == 2:
+                self.nx, self.ny, _ = self.bounce_mask.shape
+            elif self.lattice.d == 3:
+                self.nx, self.ny, self.nz, _ = self.bounce_mask.shape
         # set dimensions based on lattice
         self.dimensions = [self.nx or 1, self.ny or 1, self.nz or 1]
         self.dimensions = self.dimensions[:self.lattice.d]
@@ -71,13 +74,22 @@ class LBM:
         return "undefined_sim"
 
     def get_bounce_mask(self, collision_mask):
-        shifted_mask = jnp.stack([
-            jnp.roll(collision_mask, shift=(dx, dy), axis=(0, 1))
-            for dx, dy in self.lattice.c.T
-        ], axis=-1)
-        boundary_mask = (~shifted_mask[:, :, 0]) & jnp.any(shifted_mask[:, :, 1:], axis=-1)
-        bounce_mask = boundary_mask[..., jnp.newaxis] & shifted_mask
-        return bounce_mask
+        if self.lattice.d == 2:
+            shifted_mask = jnp.stack([
+                jnp.roll(collision_mask, shift=(dx, dy), axis=(0, 1))
+                for dx, dy in self.lattice.c.T
+            ], axis=-1)
+            boundary_mask = (~shifted_mask[:, :, 0]) & jnp.any(shifted_mask[:, :, 1:], axis=-1)
+            bounce_mask = boundary_mask[..., jnp.newaxis] & shifted_mask
+            return bounce_mask
+        elif self.lattice.d == 3:
+            shifted_mask = jnp.stack([
+                jnp.roll(collision_mask, shift=(dx, dy, dz), axis=(0, 1, 2))
+                for dx, dy, dz in self.lattice.c.T
+            ], axis=-1)
+            boundary_mask = (~shifted_mask[:, :, :, 0]) & jnp.any(shifted_mask[:, :, :, 1:], axis=-1)
+            bounce_mask = boundary_mask[..., jnp.newaxis] & shifted_mask
+            return bounce_mask
 
     def run(self, nt):
         """

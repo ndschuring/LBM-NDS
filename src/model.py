@@ -459,9 +459,12 @@ class PhaseField(BGK):
 
     def viscous_force(self, rho, u, kin_visc):
         nabla_u = nabla_vector(u)
-        nabla_u_T = jnp.transpose(nabla_u, axes=(0, 1, 3, 2))
+        axes = list(range(nabla_u.ndim))
+        axes[-1], axes[-2] = axes[-2], axes[-1]
+        nabla_u_T = jnp.transpose(nabla_u, axes=axes)
         viscous_term = kin_visc[..., jnp.newaxis, jnp.newaxis] * (nabla_u + nabla_u_T)
-        viscous_force = jnp.einsum('ijkl,ijl->ijk', viscous_term, nabla(rho))
+        # viscous_force = jnp.einsum('ijkl,ijl->ijk', viscous_term, nabla(rho))
+        viscous_force = jnp.einsum('...kl,...l->...k', viscous_term, nabla(rho))
         return viscous_force
 
     def surface_tension_force(self, phi):
