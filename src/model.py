@@ -378,6 +378,7 @@ class PhaseField(BGK):
         self.post_loop(f, nt, g=g, force=force_prev)
         return f
 
+    @partial(jax.jit, static_argnums=0)
     def update(self, f_prev, **kwargs):
         it = kwargs.get("it")
         if self.debug:
@@ -510,6 +511,7 @@ class PhaseField(BGK):
         source_term = jnp.einsum("...ab,...a->...b", source_term, force)
         return source_term
 
+    @partial(jit, static_argnums=(0,), donate_argnums=(1,))
     def collision(self, f, **kwargs):
         g = kwargs.get("g")
         phi = self.get_phi(g)
