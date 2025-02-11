@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from src.lattice import LatticeD2Q9
 from src.model import *
 from src.utility_functions import mask_from_image, place_circle
+from pathlib import Path
 import jax.numpy as jnp
 import cmasher as cmr
 import numpy as np
@@ -95,7 +96,8 @@ if __name__ == "__main__":
     # plot_from = 2500
     plot_from = 0
     # Set collision mask from image
-    image = cv2.imread('C:/Users/ndsch/PycharmProjects/LBM-NDS/src/masks/flow10.png', cv2.IMREAD_GRAYSCALE)
+    project_root = Path(__file__).resolve().parent.parent
+    image = cv2.imread(str(project_root / "src" / "masks" / "flow10.png"), cv2.IMREAD_GRAYSCALE)
     collision_mask = mask_from_image(image)
     nx, ny = collision_mask.shape
     # nx, ny = 100, 100
@@ -141,6 +143,6 @@ if __name__ == "__main__":
         'u_bc': u_bc,
     }
     # Create simulation and run
-    simPoiseuille = Poiseuille(**kwargs)
-    simPoiseuille.run(nt)
+    # simPoiseuille = Poiseuille(**kwargs)
+    # simPoiseuille.run(nt)
 
