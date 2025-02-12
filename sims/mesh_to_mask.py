@@ -17,13 +17,13 @@ if __name__ == '__main__':
         if not mesh.is_watertight:
             raise RuntimeError("Mesh should be watertight")
         print(f"Mesh dimensions (z, x, y): {mesh.bounding_box.extents}")
-        resolution = 5
+        resolution = 70
         pitch = mesh.bounding_box.extents.min() / resolution
         mesh = mesh.voxelized(pitch=pitch, max_iter=30).fill()
         # mesh.show()
-        boolean_array = mesh.matrix.transpose(1, 2, 0)
+        boolean_array = mesh.matrix
         boolean_array = ~boolean_array
-        collision_mask = np.pad(boolean_array, ((1, 1), (0, 0), (1, 1)), mode='constant', constant_values=True)
+        collision_mask = np.pad(boolean_array, ((1, 1), (0, 0), (1, 1)), mode='constant', constant_values=True).transpose(1, 2, 0)
         print(f"Collision mask shape: {collision_mask.shape}")
         save_path = project_root / "src" / "masks" / mesh_name
         np.save(str(save_path), collision_mask)
