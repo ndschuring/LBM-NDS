@@ -1,4 +1,3 @@
-from jax import jit
 from src.utility_functions import *
 from functools import partial
 import matplotlib.pyplot as plt
@@ -11,8 +10,10 @@ import sys
 import os
 
 
-
 # jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_platform_name", "cpu")
+# os.environ['XLA_FLAGS'] = "--xla_disable_hlo_passes=constant_folding"
+
 
 class LBM:
     def __init__(self, **kwargs):
@@ -180,7 +181,7 @@ class LBM:
             rho_post_stream_debug_post = np.asarray(self.macro_vars(f_post_stream)[0])
         return f_post_stream, f_prev
 
-    @partial(jit, static_argnums=0, inline=True)
+    @partial(jax.jit, static_argnums=0, inline=True)
     def macro_vars(self, f, force=None):
         """
         Calculate macroscopic variables of f using method of moments
@@ -258,7 +259,7 @@ class LBM:
         """
         return f
 
-    @partial(jit, static_argnums=(0,))
+    @partial(jax.jit, static_argnums=(0,))
     def stream(self, f):
         """
         Streams discrete velocities to neighbours in up to 3D
