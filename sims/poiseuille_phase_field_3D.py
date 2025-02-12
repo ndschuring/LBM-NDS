@@ -128,6 +128,25 @@ class Poiseuille(PhaseField):
         plt.savefig(self.sav_dir + "/fig_2D_P_it" + str(it) + ".jpg", dpi=250)
         plt.clf()
 
+        plt.imshow(phi[-1, :, :], cmap='viridis')
+        # plt.imshow(rho.T, cmap='viridis')
+        plt.gca().invert_yaxis()
+        plt.colorbar(label="Order Parameter")
+        plt.xlabel("y [lattice units]")
+        plt.ylabel("z [lattice units]")
+        plt.title("it:" + str(it) + " sum_rho:" + str(jnp.sum(rho)))
+        plt.savefig(self.sav_dir + "/fig_phi_outlet_it" + str(it) + ".jpg", dpi=300)
+        plt.clf()
+
+        plt.imshow(u_magnitude[-1, :, :], cmap='viridis')
+        # plt.imshow(rho.T, cmap='viridis')
+        plt.gca().invert_yaxis()
+        plt.colorbar(label="Velocity magnitude")
+        plt.xlabel("y [lattice units]")
+        plt.ylabel("z [lattice units]")
+        plt.title("it:" + str(it) + " sum_rho:" + str(jnp.sum(rho)))
+        plt.savefig(self.sav_dir + "/fig_u_outlet_it" + str(it) + ".jpg", dpi=300)
+        plt.clf()
 
 
 if __name__ == "__main__":
