@@ -265,7 +265,7 @@ class BGKMulti(BGK):
         g_eq = g_eq.at[..., 0].set(phi - jnp.sum(g_eq[..., 1:], axis=-1))
         return g_eq
 
-    @partial(jit, static_argnums=(0,), donate_argnums=(1,))
+    @partial(jax.jit, static_argnums=(0,), donate_argnums=(1,))
     def g_collision(self, g, **kwargs):
         f = kwargs.get("f")
         force = kwargs.get("force")
@@ -511,7 +511,7 @@ class PhaseField(BGK):
         source_term = jnp.einsum("...ab,...a->...b", source_term, force)
         return source_term
 
-    @partial(jit, static_argnums=(0,), donate_argnums=(1,))
+    @partial(jax.jit, static_argnums=(0,), donate_argnums=(1,))
     def collision(self, f, **kwargs):
         g = kwargs.get("g")
         phi = self.get_phi(g)
@@ -523,7 +523,7 @@ class PhaseField(BGK):
         f_eq = self.f_equilibrium(rho, u, p=p)
         return f - 1 / self.tau * (f - f_eq) + (1 - 1 / (2 * self.tau)) * source
 
-    @partial(jit, static_argnums=(0,), donate_argnums=(1,))
+    @partial(jax.jit, static_argnums=(0,), donate_argnums=(1,))
     def g_collision(self, g, **kwargs):
         f = kwargs.get("f")
         force = kwargs.get("force")
