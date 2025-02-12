@@ -32,7 +32,7 @@ class BGK(LBM):
         print("Mach number: ", self.mach)
 
 
-    @partial(jit, static_argnums=(0,), donate_argnums=(1,))
+    @partial(jax.jit, static_argnums=(0,), donate_argnums=(1,))
     def collision(self, f, **kwargs):
         """
         BGK Collision
