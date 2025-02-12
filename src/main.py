@@ -44,6 +44,7 @@ class LBM:
         # Plotting Parameters
         self.x = jnp.arange(1, self.nx+1) - 0.5
         self.y = jnp.arange(1, self.ny+1) - 0.5
+        self.z = jnp.arange(1, self.nz+1) - 0.5
         self.plot_every = kwargs.get("plot_every", 50)
         self.plot_from = kwargs.get("plot_from", 0)
         self.sim_name = str(self)
@@ -121,7 +122,6 @@ class LBM:
         new_folder = f"{current_folder} - crashed"
         new_save_dir = os.path.join(parent_dir, new_folder)
         os.rename(self.sav_dir, new_save_dir)
-        raise
 
     def initialize(self):
         """
