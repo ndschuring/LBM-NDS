@@ -167,17 +167,17 @@ if __name__ == "__main__":
     # Set collision mask from image
     project_root = Path(__file__).resolve().parent.parent
     mask_path = project_root / "src" / "masks" / "channel_grooves.npy"
-    collision_mask = np.load(str(mask_path)).transpose(1, 2, 0)
+    collision_mask = np.load(str(mask_path))
     print(collision_mask.shape)
     nx, ny, nz = collision_mask.shape
-    # collision_mask = jnp.zeros((nx, ny, nz), dtype=jnp.bool)
-    # collision_mask=collision_mask.at[:, 0, :].set(True).at[:, -1, :].set(True).at[:, :, 0].set(True).at[:, :, -1].set(True)
-    u_max = 0.05
+    ## initial values
+    u_max = 0.064
     u_bc = jnp.zeros((nx, ny, nz, 3))
     u_bc = u_bc.at[0, :, :, 0].set(u_max)
-    u_innit = jnp.zeros_like(u_bc).at[:,:,:,0].set(u_max)
-    # phi_init = jnp.zeros((nx, ny, nz)).at[:, :, :int(nz / 2)].set(1).at[:, :, int(nz / 2):].set(0) #left half 1, other half 0
-    phi_init = jnp.zeros((nx, ny, nz)).at[0, 26:52, 1:int(nz / 2)].set(1) #all 0, inlet half
+    u_innit = jnp.zeros_like(u_bc)
+    u_innit = u_innit.at[:,:,:,0].set(u_max)
+    phi_init = jnp.zeros((nx, ny, nz)).at[:, :, :int(nz / 2)].set(1).at[:, :, int(nz / 2):].set(0) #left half 1, other half 0
+    # phi_innit = phi_init.at[0, 26:52, 1:int(nz / 2)].set(1) #all 0, inlet half
     phi_bc = phi_init
     # Multi-component-specific parameters
     gamma = 1
